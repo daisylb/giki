@@ -1,5 +1,6 @@
 from dulwich.repo import Repo
-from dulwich.objects import Commit
+from dulwich.objects import Blob, Commit
+from time import time
 
 class Wiki (object):
 	"""Represents a Giki wiki."""
@@ -17,11 +18,11 @@ class Wiki (object):
 		self._repo = Repo(repo_path)
 		self._ref = ref_name
 
-	def _get_file_from_commit(self, commit, path):
-		tree = self._repo.object_store[commit.tree]
-		for i in self._repo.object_store.iter_tree_contents(tree):
-			if i.path.starts_with("{}.".format(path)):
-				return i.path.split(".")[1], self._repo.object_store[i.sha]
+	def _get_blob_for_page(self, commit, path):
+		"""Returns (filetype, blob_sha)"""
+		for i in self._repo.object_store.iter_tree_contents(commit.tree):
+			if i.path.startswith("{}.".format(path)):
+				return i.path.split(".")[1], i.sha
 
 
 	def get_page(self, path):
@@ -29,11 +30,49 @@ class Wiki (object):
 
 		@return `WikiPage` object
 		"""
-		latest_sha1 = self._repo.ref(self._ref)
-		latest = self._repo.commit(latest_sha1)
-		page_fmt, page_sha1 = self._get_file_from_commit(latest, path)
+		# get the sha of the latest commit
+		sha = self._repo.ref(self._ref)
+		return self.get_page_at_commit(path, sha)
+
+	def create_page(self, path, fmt, author):
+		#get current tree
+		old_commit_sha = self._repo.ref(self._ref)
+		tree_sha = self._repo.commit(old_commit_sha).tree
+		tree = self._repo.object_store[tree_sha]
+
+		#save updated content to the tree
+		blob = Blob.from_string('\n')
+		filepath = '.'.join((path, fmt))
+		tree[filepath] = (0100644, blob.id)
+
+		#create a commit
+		commit = Commit()
+		commit.tree = tree.id
+		commit.parents = [old_commit_sha]
+		commit.author = commit.committer = author
+		commit.commit_time = commit.author_time = int(time())
+		commit.commit_timezone = commit.author_timezone = 0
+		commit.encoding = "UTF-8"
+		commit.message = "Create page {} with format {}".format(path, fmt)
+
+		#write
+		self._repo.object_store.add_object(blob)
+		self._repo.object_store.add_object(tree)
+		self._repo.object_store.add_object(commit)
+
+		#update refs, to hell with concurrency (for now)
+		self._repo.refs[self._ref] = commit.id
+
+
+	def get_page_at_commit(self, path, sha):
+		"""Gets the page at a particular path, at the commit with a particular sha.
+
+		@return `WikiPage` object
+		"""
+		commit = self._repo.commit(sha)
+		page_fmt, page_sha1 = self._get_blob_for_page(commit, path)
 		page_content = self._repo.object_store[page_sha1].as_raw_string()
-		return WikiPage(self, latest_sha1, page_fmt, path, page_content)
+		return WikiPage(self, sha, page_fmt, path, page_content)
 
 	def get_page_from_commit(self, commit, path):
 		"""Gets the page from a certain location, as it was on a certain commit.
@@ -43,10 +82,38 @@ class Wiki (object):
 		"""
 
 	def _store_page(self, page, author, change_msg):
-		if (page._orig_content == page.content
-		and page._orig_fmt == page.fmt
-		and page._orig_path == page.path):
-			return
+		if page._orig_content == page.content:
+			return page.commit
+
+		if page.content[-1] != "\n":
+			page.content += "\n"
+
+		#get tree that this edit was based on
+		tree_sha = self._repo.commit(page.commit).tree
+		tree = self._repo.object_store[tree_sha]
+
+		#save updated content to the tree
+		blob = Blob.from_string(page.content)
+		filepath = '.'.join((page.path, page.fmt))
+		tree[filepath] = (0100644, blob.id)
+
+		#create a commit
+		commit = Commit()
+		commit.tree = tree.id
+		commit.parents = [page.commit]
+		commit.author = commit.committer = author
+		commit.commit_time = commit.author_time = int(time())
+		commit.commit_timezone = commit.author_timezone = 0
+		commit.encoding = "UTF-8"
+		commit.message = change_msg
+
+		#write
+		self._repo.object_store.add_object(blob)
+		self._repo.object_store.add_object(tree)
+		self._repo.object_store.add_object(commit)
+
+		#update refs, to hell with concurrency (for now)
+		self._repo.refs[self._ref] = commit.id
 
 
 class WikiPage (object):
@@ -95,4 +162,16 @@ class WikiPage (object):
 		@return sha of the commit the modification was made in. Note that if a merge
 			was performed, this may not be the branch head.
 		"""
-		wiki._store_page(self, author, change_msg)
+		return self.wiki._store_page(self, author, change_msg)
+
+class ManualMergeRequired (Exception):
+	"""Raised if Giki cannot merge a change in automatically.
+
+	If you recieve this exception, the changes have been safely committed to the
+	repo (although they won't be attatched to anything, so you won't see them in
+	a repo browsing tool, and they might get garbage collected if you leave them
+	too long).
+
+	TODO: what to do
+	"""
+	pass
