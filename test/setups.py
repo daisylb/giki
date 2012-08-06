@@ -19,6 +19,9 @@ def setup_bare_with_page():
 	b = Blob.from_string(EXAMPLE_TEXT)
 	t = Tree()
 	t.add('index.mdown', 0100644, b.id)
+	t2 = Tree()
+	t2.add('test.mdown', 0100644, b.id)
+	t.add('test', 040000, t2.id)
 	c = Commit()
 	c.tree = t.id
 	c.author = c.committer = EXAMPLE_AUTHOR
@@ -31,6 +34,7 @@ def setup_bare_with_page():
 	#write
 	r.object_store.add_object(b)
 	r.object_store.add_object(t)
+	r.object_store.add_object(t2)
 	r.object_store.add_object(c)
 
 def teardown_bare():

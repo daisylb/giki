@@ -18,15 +18,39 @@ class Wiki (object):
 		self._repo = Repo(repo_path)
 		self._ref = ref_name
 
+	def _get_tree_for_page(self, root_tree, path, create=False):
+		"""Returns (pagename, tree)"""
+		if '/' in path:
+			patharr = path.split('/')
+			filename = patharr[-1]
+			tree = root_tree
+			# loop through trees to find the immediate parent of our page
+			for i in patharr[:-1]:
+				treeobj = self._repo.object_store[tree]
+				tree = treeobj[i][1]
+		else:
+			filename = path
+			tree = root_tree
+
+		return filename, tree
+
+
 	def _get_blob_for_page(self, commit, path):
 		"""Returns (filetype, blob_sha)"""
-		for i in self._repo.object_store.iter_tree_contents(commit.tree):
-			if i.path.startswith("{}.".format(path)):
+		filename, tree = self._get_tree_for_page(commit.tree, path)
+
+		# find a matching file in that tree
+		for i in self._repo.object_store.iter_tree_contents(tree):
+			if i.path.startswith("{}.".format(filename)):
 				return i.path.split(".")[1], i.sha
+
+		return None, None
 
 
 	def get_page(self, path):
 		"""Gets the page at a particular path.
+
+		Subfolders should be specified with the `/` symbol, regardless of platform.
 
 		@return `WikiPage` object
 		"""
@@ -67,19 +91,15 @@ class Wiki (object):
 	def get_page_at_commit(self, path, sha):
 		"""Gets the page at a particular path, at the commit with a particular sha.
 
+		If you can't hold on to a page in memory while the user is editing it (eg
+		in a web app), you should keep track of its `commit` and use this to store.
+
 		@return `WikiPage` object
 		"""
 		commit = self._repo.commit(sha)
 		page_fmt, page_sha1 = self._get_blob_for_page(commit, path)
 		page_content = self._repo.object_store[page_sha1].as_raw_string()
 		return WikiPage(self, sha, page_fmt, path, page_content)
-
-	def get_page_from_commit(self, commit, path):
-		"""Gets the page from a certain location, as it was on a certain commit.
-
-		If you can't hold on to a page in memory while the user is editing it (eg
-		in a web app), you should
-		"""
 
 	def _store_page(self, page, author, change_msg):
 		if page._orig_content == page.content:
