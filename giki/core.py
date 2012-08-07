@@ -18,35 +18,6 @@ class Wiki (object):
 		self._repo = Repo(repo_path)
 		self._ref = ref_name
 
-	def _get_tree_for_page(self, root_tree, path, create=False):
-		"""Returns (pagename, tree)"""
-		if '/' in path:
-			patharr = path.split('/')
-			filename = patharr[-1]
-			tree = root_tree
-			# loop through trees to find the immediate parent of our page
-			for i in patharr[:-1]:
-				treeobj = self._repo.object_store[tree]
-				tree = treeobj[i][1]
-		else:
-			filename = path
-			tree = root_tree
-
-		return filename, tree
-
-
-	def _get_blob_for_page(self, commit, path):
-		"""Returns (filetype, blob_sha)"""
-		filename, tree = self._get_tree_for_page(commit.tree, path)
-
-		# find a matching file in that tree
-		for i in self._repo.object_store.iter_tree_contents(tree):
-			if i.path.startswith("{}.".format(filename)):
-				return i.path.split(".")[1], i.sha
-
-		return None, None
-
-
 	def get_page(self, path):
 		"""Gets the page at a particular path.
 
@@ -54,15 +25,24 @@ class Wiki (object):
 
 		@return `WikiPage` object
 		"""
-		# get the sha of the latest commit
-		sha = self._repo.ref(self._ref)
-		return self.get_page_at_commit(path, sha)
+		p = WikiPage(self, path)
+		p._load()
+		return p
+
+	def get_page_at_commit(self, path, id):
+		"""Gets the page at a particular path, at the commit with a particular sha.
+
+		@return `WikiPage` object
+		"""
+		p = WikiPage(self, path)
+		p._load_from_commit(id)
+		return p
 
 	def create_page(self, path, fmt, author):
 		#get current tree
-		old_commit_sha = self._repo.ref(self._ref)
-		tree_sha = self._repo.commit(old_commit_sha).tree
-		tree = self._repo.object_store[tree_sha]
+		old_commit_id = self._repo.ref(self._ref)
+		tree_id = self._repo.commit(old_commit_id).tree
+		tree = self._repo.object_store[tree_id]
 
 		#save updated content to the tree
 		blob = Blob.from_string('\n')
@@ -72,7 +52,7 @@ class Wiki (object):
 		#create a commit
 		commit = Commit()
 		commit.tree = tree.id
-		commit.parents = [old_commit_sha]
+		commit.parents = [old_commit_id]
 		commit.author = commit.committer = author
 		commit.commit_time = commit.author_time = int(time())
 		commit.commit_timezone = commit.author_timezone = 0
@@ -87,55 +67,6 @@ class Wiki (object):
 		#update refs, to hell with concurrency (for now)
 		self._repo.refs[self._ref] = commit.id
 
-
-	def get_page_at_commit(self, path, sha):
-		"""Gets the page at a particular path, at the commit with a particular sha.
-
-		If you can't hold on to a page in memory while the user is editing it (eg
-		in a web app), you should keep track of its `commit` and use this to store.
-
-		@return `WikiPage` object
-		"""
-		commit = self._repo.commit(sha)
-		page_fmt, page_sha1 = self._get_blob_for_page(commit, path)
-		page_content = self._repo.object_store[page_sha1].as_raw_string()
-		return WikiPage(self, sha, page_fmt, path, page_content)
-
-	def _store_page(self, page, author, change_msg):
-		if page._orig_content == page.content:
-			return page.commit
-
-		if page.content[-1] != "\n":
-			page.content += "\n"
-
-		#get tree that this edit was based on
-		tree_sha = self._repo.commit(page.commit).tree
-		tree = self._repo.object_store[tree_sha]
-
-		#save updated content to the tree
-		blob = Blob.from_string(page.content)
-		filepath = '.'.join((page.path, page.fmt))
-		tree[filepath] = (0100644, blob.id)
-
-		#create a commit
-		commit = Commit()
-		commit.tree = tree.id
-		commit.parents = [page.commit]
-		commit.author = commit.committer = author
-		commit.commit_time = commit.author_time = int(time())
-		commit.commit_timezone = commit.author_timezone = 0
-		commit.encoding = "UTF-8"
-		commit.message = change_msg
-
-		#write
-		self._repo.object_store.add_object(blob)
-		self._repo.object_store.add_object(tree)
-		self._repo.object_store.add_object(commit)
-
-		#update refs, to hell with concurrency (for now)
-		self._repo.refs[self._ref] = commit.id
-
-
 class WikiPage (object):
 	"""Represents a page in a Giki wiki.
 
@@ -144,33 +75,68 @@ class WikiPage (object):
 	- `content` - the content of the page.
 	- `fmt` - the file extension, eg `mdown` for Markdown.
 	- `path` - the path to the page, not including extension.
-	- `commit` - the sha of the commit this page came from.
+	- `commit_id` - the id of the commit this page came from.
 
 	To edit the page, alter `content` and call `store()`. Don't touch the other
 	attributes (yet).
 
 	If you're giving the user this to edit later, be sure to give them the
-	`commit` attribute, so you can find the same `WikiPage` to apply their
+	`commit_id` attribute, so you can find the same `WikiPage` to apply their
 	edits to using `get_page_from_commit`.
-
 	"""
 
 	wiki = None
 	content = ''
 	fmt = ''
 	path = ''
-	commit = '' # The commit this page came from before modification
+	commit_id = '' # The commit this page came from before modification
+	_commit = None
 	_orig_content = '' # For comparing to see if it's actually changed
+	_trees = []
+	_filename = '' #without extension
 
-	def __init__(self, wiki, commit, fmt, path, content):
+	def __init__(self, wiki, path):
 		"""Don't call this directly."""
 		self.wiki = wiki
-		self.commit = commit
-		self.fmt = fmt
+		self._repo = wiki._repo
 		self.path = path
-		self._orig_content = self.content = content
+		self._trees = [] #tuples of (directory_name, tree_obj)
 
-	def store(self, author, change_msg=''):
+	def _load(self):
+		id = self._repo.ref(self.wiki._ref)
+		self._load_from_commit(id)
+
+	def _load_from_commit(self, commit_id):
+		self.commit_id = commit_id
+		self._commit = self._repo.commit(commit_id)
+		self._walk_trees()
+
+		# find a blob that matches our page's name, and discover its format
+		for i in self._repo.object_store.iter_tree_contents(self._trees[-1][1].id):
+			if i.path.startswith("{}.".format(self._filename)):
+				self.fmt = i.path.split(".")[1]
+				blob = i
+
+		self._orig_content = self.content = self._repo.object_store[blob.sha].as_raw_string()
+
+	def _walk_trees(self):
+		"""Populates `_trees` and `_filename`"""
+		self._trees.append(('', self._repo.object_store[self._commit.tree]))
+
+		if '/' in self.path:
+			patharr = self.path.split('/')
+			self._filename = patharr[-1]
+
+			# loop through trees to find the immediate parent of our page
+			tree = self._trees[0][1]
+			for i in patharr[:-1]:
+				tree_id = tree[i][1]
+				tree = self._repo.object_store[tree_id]
+				self._trees.append((i, tree))
+		else:
+			self._filename = self.path
+
+	def save(self, author, change_msg=''):
 		"""Saves a page to the respository.
 
 		Makes a new commit with the modified contents of `content`, with `commit`
@@ -179,10 +145,47 @@ class WikiPage (object):
 
 		@param Author, in Git-style `name <email>` format.
 		@param change_msg Commit message. Automatically generated if omitted/empty.
-		@return sha of the commit the modification was made in. Note that if a merge
+		@return id of the commit the modification was made in. Note that if a merge
 			was performed, this may not be the branch head.
 		"""
-		return self.wiki._store_page(self, author, change_msg)
+		if self._orig_content == self.content:
+			return self.commit
+
+		if self.content[-1] != "\n":
+			self.content += "\n"
+
+		#save updated content to the tree
+		blob = Blob.from_string(self.content)
+		full_filename = '.'.join((self._filename, self.fmt))
+
+		immediate_parent_tree = self._trees[-1][1]
+
+		immediate_parent_tree[full_filename] = (0100644, blob.id)
+
+		self._repo.object_store.add_object(blob)
+		self._repo.object_store.add_object(immediate_parent_tree)
+
+		#loop backwards through parent trees
+		for t in reversed(list(enumerate(self._trees[:-1]))):
+			idx = t[0]
+			tree = t[1][1]
+			child_tree = self._trees[idx + 1]
+			tree[child_tree[0]] = (040000, child_tree[1].id)
+			self._repo.object_store.add_object(tree)
+
+		#create a commit
+		commit = Commit()
+		commit.tree = self._trees[0][1].id
+		commit.parents = [self.commit_id]
+		commit.author = commit.committer = author
+		commit.commit_time = commit.author_time = int(time())
+		commit.commit_timezone = commit.author_timezone = 0
+		commit.encoding = "UTF-8"
+		commit.message = change_msg
+		self._repo.object_store.add_object(commit)
+
+		#update refs, to hell with concurrency (for now)
+		self._repo.refs[self.wiki._ref] = commit.id
 
 class ManualMergeRequired (Exception):
 	"""Raised if Giki cannot merge a change in automatically.
