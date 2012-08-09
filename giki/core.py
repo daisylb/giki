@@ -1,5 +1,5 @@
 from dulwich.repo import Repo
-from dulwich.objects import Blob, Commit
+from dulwich.objects import Blob, Commit, Tree
 from time import time
 
 class Wiki (object):
@@ -39,33 +39,9 @@ class Wiki (object):
 		return p
 
 	def create_page(self, path, fmt, author):
-		#get current tree
-		old_commit_id = self._repo.ref(self._ref)
-		tree_id = self._repo.commit(old_commit_id).tree
-		tree = self._repo.object_store[tree_id]
-
-		#save updated content to the tree
-		blob = Blob.from_string('\n')
-		filepath = '.'.join((path, fmt))
-		tree[filepath] = (0100644, blob.id)
-
-		#create a commit
-		commit = Commit()
-		commit.tree = tree.id
-		commit.parents = [old_commit_id]
-		commit.author = commit.committer = author
-		commit.commit_time = commit.author_time = int(time())
-		commit.commit_timezone = commit.author_timezone = 0
-		commit.encoding = "UTF-8"
-		commit.message = "Create page {} with format {}".format(path, fmt)
-
-		#write
-		self._repo.object_store.add_object(blob)
-		self._repo.object_store.add_object(tree)
-		self._repo.object_store.add_object(commit)
-
-		#update refs, to hell with concurrency (for now)
-		self._repo.refs[self._ref] = commit.id
+		p = WikiPage(self, path)
+		p._create(fmt, author)
+		return p
 
 class WikiPage (object):
 	"""Represents a page in a Giki wiki.
@@ -102,6 +78,39 @@ class WikiPage (object):
 		self.path = path
 		self._trees = [] #tuples of (directory_name, tree_obj)
 
+	def _create(self, fmt, author):
+		self.commit_id = self._repo.ref(self.wiki._ref)
+		self._commit = self._repo.commit(self.commit_id)
+		self._walk_trees(True)
+		self._orig_content = '!'
+		self.content = "\n"
+
+		self.fmt = fmt
+		self.save(author, 'Created {}'.format(self.path))
+
+		# #save updated content to the tree
+		# blob = Blob.from_string('\n')
+		# filepath = '.'.join((path, fmt))
+		# tree[filepath] = (0100644, blob.id)
+
+		# #create a commit
+		# commit = Commit()
+		# commit.tree = tree.id
+		# commit.parents = [old_commit_id]
+		# commit.author = commit.committer = author
+		# commit.commit_time = commit.author_time = int(time())
+		# commit.commit_timezone = commit.author_timezone = 0
+		# commit.encoding = "UTF-8"
+		# commit.message = "Create page {} with format {}".format(path, fmt)
+
+		# #write
+		# self._repo.object_store.add_object(blob)
+		# self._repo.object_store.add_object(tree)
+		# self._repo.object_store.add_object(commit)
+
+		#update refs, to hell with concurrency (for now)
+		# self._repo.refs[self._ref] = commit.id
+
 	def _load(self):
 		id = self._repo.ref(self.wiki._ref)
 		self._load_from_commit(id)
@@ -119,7 +128,7 @@ class WikiPage (object):
 
 		self._orig_content = self.content = self._repo.object_store[blob.sha].as_raw_string()
 
-	def _walk_trees(self):
+	def _walk_trees(self, create=False):
 		"""Populates `_trees` and `_filename`"""
 		self._trees.append(('', self._repo.object_store[self._commit.tree]))
 
@@ -130,9 +139,17 @@ class WikiPage (object):
 			# loop through trees to find the immediate parent of our page
 			tree = self._trees[0][1]
 			for i in patharr[:-1]:
-				tree_id = tree[i][1]
-				tree = self._repo.object_store[tree_id]
-				self._trees.append((i, tree))
+				try:
+					tree_id = tree[i][1]
+				except KeyError:
+					if create:
+						tree = Tree()
+						self._trees.append((i, tree))
+					else:
+						raise
+				else:
+					tree = self._repo.object_store[tree_id]
+					self._trees.append((i, tree))
 		else:
 			self._filename = self.path
 
