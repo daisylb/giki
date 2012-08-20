@@ -2,12 +2,16 @@
 
 giki is a wiki that uses Git as a backend.
 
-Intended features include:
+## Features
+
+- Cleanly separated `core` module
+- No C dependencies
+
+### Planned
 
 - Web-based single user wiki with one click fetch-merge-pull
 - Web-based authenticating multi user wiki with support for Git smart HTTP push and pull
 - Mac OS X application bundle and wrapper for the single user app
-
-- Multiple formats with a WYSIWYG editor for HTML and a nice editing environment for others
+- Multiple formats with a WYSIWYG editor for HTML and CodeMirror for others
 - MathJax support
 - Code highlighting support
