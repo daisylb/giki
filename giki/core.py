@@ -24,6 +24,7 @@ class Wiki (object):
 		Subfolders should be specified with the `/` symbol, regardless of platform.
 
 		@return `WikiPage` object
+		@raises PageNotFound if the page does not exist
 		"""
 		p = WikiPage(self, path)
 		p._load()
@@ -33,6 +34,7 @@ class Wiki (object):
 		"""Gets the page at a particular path, at the commit with a particular sha.
 
 		@return `WikiPage` object
+		@raises PageNotFound if the page does not exist at that particular commit
 		"""
 		p = WikiPage(self, path)
 		p._load_from_commit(id)
@@ -125,6 +127,9 @@ class WikiPage (object):
 			if i.path.startswith("{}.".format(self._filename)):
 				self.fmt = i.path.split(".")[1]
 				blob = i
+				break
+		else:
+			raise PageNotFound()
 
 		self._orig_content = self.content = self._repo.object_store[blob.sha].as_raw_string()
 
@@ -203,6 +208,9 @@ class WikiPage (object):
 
 		#update refs, to hell with concurrency (for now)
 		self._repo.refs[self.wiki._ref] = commit.id
+
+class PageNotFound (Exception):
+	pass
 
 class ManualMergeRequired (Exception):
 	"""Raised if Giki cannot merge a change in automatically.
