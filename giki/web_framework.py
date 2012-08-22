@@ -4,6 +4,7 @@ Why create our own? Because all of the other microframeworks I could find rely o
 
 import re
 from wsgiref.simple_server import make_server
+from inspect import getmembers
 
 class WebApp (object):
 	"""Subclass this to create a web app."""
@@ -20,15 +21,14 @@ class WebApp (object):
 		This is not the callable itself, it *returns* the callable."""
 		
 		#Assemble views dictionary
-		decorated_views = [(x.path, x.verbs, x) for x in self.__dict__.iteritems() if getattr(x, "_is_web_view", False)]
+		decorated_views = [(x[1].path, x[1].verbs, x[1]) for x in getmembers(self) if getattr(x[1], "_is_web_view", False)]
 		views = decorated_views + self.__mounted_views
-		
+				
 		#compile regexes
 		views = [(re.compile(a), b, c) for (a, b, c) in views]
 		
 		def app(environ, start_response):
 			for path, verbs, view in views:
-				# find a match
 				if environ['REQUEST_METHOD'] not in verbs: continue
 				match = path.match(environ['PATH_INFO'])
 				if match is None: continue
@@ -37,7 +37,7 @@ class WebApp (object):
 				return response._do_response(start_response)
 			else:
 				# can't find an appropriate view
-				r = NotFoundResponse()
+				r = NotFoundResponse("<html><body><h1>404 Not Found</h1></body></html>")
 				return r._do_response(start_response)
 		
 		return app
@@ -113,6 +113,7 @@ class Response (object):
 	headers = [] # the content type header is added later
 	
 	def __init__(self, content=None, status=None, content_type=None):
+		self.headers = []
 		if content is not None:
 			self.content = content
 		if status is not None:
@@ -124,7 +125,7 @@ class Response (object):
 		self.headers.append((header, value))
 	
 	def _do_response(self, start_response):
-		self.add_header('Content-Type', self.content)
+		self.add_header('Content-Type', self.content_type)
 		self.add_header('Content-Length', str(len(self.content)))
 		start_response(STATUS_STRINGS.get(self.status, self.status), self.headers)
 		return [self.content]
