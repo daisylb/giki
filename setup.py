@@ -11,8 +11,8 @@ setup(name='giki',
 		for i in os.walk('giki')
 		if '__init__.py' in i[2]],
 	install_requires=[
-		'flask',
-		'dulwich',
+		'dulwich==0.8.5',
+		'markdown2==2.0.1',
 	],
 	entry_points={
     'console_scripts':
