@@ -4,8 +4,7 @@ giki is a wiki that uses Git as a backend.
 
 ## Features
 
-- Cleanly separated `core` module
-- No C dependencies
+- No non-Python dependencies, so hopefully trivial to install on shared hosts that support Pip.
 
 ### Planned
 
@@ -15,3 +14,12 @@ giki is a wiki that uses Git as a backend.
 - Multiple formats with a WYSIWYG editor for HTML and CodeMirror for others
 - MathJax support
 - Code highlighting support
+
+## Extending
+
+I've tried to keep the code cleanly separated and fairly logical so that it's not too hard to dive in. The modules are as follows:
+
+- `core` defines the `Wiki` and `WikiPage` classes, which are responsible for dealing with the Git repository.
+- `web` is the web interface.
+- `web_framework` is a micro-framework that looks and works a lot like Flask and friends, except using a class instead of module globals.
+- `formatter` converts formats like Markdown and friends to HTML.
