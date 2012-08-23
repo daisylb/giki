@@ -15,6 +15,32 @@ class WebApp (object):
 		"""Mount a view to a path."""
 		__mounted_views.append((path, verbs, view))
 	
+	def handle_internal_error(self, request, exc):
+		"""If a view raises an exception, then this handler is called. Override it to provide custom 500 handling.
+		
+		This handler is only called when an exception is raised. Views can return a 500 response *without* calling this handler by returning an ErrorResponse instance.
+		
+		Note that some specific exceptions are handled by other handlers. Instances of `Exception` are guaranteed to be handled by this method.
+		
+		@param request the Request object passed to the view.
+		@param exc The exception that was raised.
+		@return an ErrorResponse instance.
+		"""
+		return ErrorResponse("<html><body><h1>500 Internal Server Error</h1></body></html>")
+
+	def handle_not_found(self, request, exc):
+		"""If a view raises a NotFoundException, then this handler is called. Override it to provide custom 404 handling.
+		
+		This handler is only called when an NotFoundException is raised. Views can return a 404 response *without* calling this handler by returning a NotFoundResponse instance.
+		
+		This handler is also called if no view matches the given URL. In this case, `exc.no_view` will be `True`.
+		
+		@param request the Request object passed to the view.
+		@param exc The exception that was raised.
+		@return a NotFoundResponse instance.
+		"""
+		return NotFoundResponse("<html><body><h1>404 Not Found</h1></body></html>")
+	
 	def wsgi(self):
 		"""Returns a WSGI app.
 		
@@ -28,17 +54,27 @@ class WebApp (object):
 		views = [(re.compile(a), b, c) for (a, b, c) in views]
 		
 		def app(environ, start_response):
+			request = Request(environ)
+			
 			for path, verbs, view in views:
 				if environ['REQUEST_METHOD'] not in verbs: continue
 				match = path.match(environ['PATH_INFO'])
 				if match is None: continue
 				
-				response = view(Request(environ), **match.groupdict())
-				return response._do_response(start_response)
+				try:
+					response = view(request, **match.groupdict())
+					return response._do_response(start_response)
+				except NotFoundException as exc:
+					response = self.handle_not_found(request, exc)
+					return response._do_response(start_response)
+				except Exception as exc:
+					response = self.handle_internal_error(request, exc)
+					return response._do_response(start_response)
 			else:
 				# can't find an appropriate view
-				r = NotFoundResponse("<html><body><h1>404 Not Found</h1></body></html>")
-				return r._do_response(start_response)
+				exc = NotFoundException(no_view=True)
+				response = self.handle_not_found(request, exc)
+				return response._do_response(start_response)
 		
 		return app
 		
@@ -151,4 +187,11 @@ class TeapotResponse (Response):
 	status = 418
 
 class ErrorResponse (Response):
-	status = 418
+	status = 500
+
+#####
+# Exceptions and Handlers
+
+class NotFoundException (Exception):
+	def __init__(self, no_view=False):
+		self.no_view = no_view
