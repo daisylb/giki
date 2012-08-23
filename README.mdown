@@ -1,5 +1,7 @@
 # giki - a Git-powered wiki
 
+**Not ready to be used yet!**
+
 giki is a web wiki powered by Git and your favourite markup language*. You can edit it through a nice web interface, or clone it like a normal Git repository.
 
 <small>*So long as it's Markdown, ReST or Textile - if you want anything else, file an issue and I'll look into it! Better yet, feel free to add it to `formatter.py` and file a pull request.</small>
