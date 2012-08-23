@@ -4,6 +4,7 @@ giki is a wiki that uses Git as a backend.
 
 ## Features
 
+- Supports Markdown and reStructuredText
 - No non-Python dependencies, so hopefully trivial to install on shared hosts that support Pip.
 
 ### Planned

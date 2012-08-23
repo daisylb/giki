@@ -13,6 +13,7 @@ setup(name='giki',
 	install_requires=[
 		'dulwich==0.8.5',
 		'markdown2==2.0.1',
+		'docutils==0.9.1',
 	],
 	entry_points={
     'console_scripts':
