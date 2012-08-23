@@ -1,24 +1,25 @@
 # giki - a Git-powered wiki
 
-giki is a wiki that uses Git as a backend.
+giki is a web wiki powered by Git and your favourite markup language*. You can edit it through a nice web interface, or clone it like a normal Git repository.
 
-## Features
+<small>*So long as it's Markdown, ReST or Textile - if you want anything else, file an issue and I'll look into it! Better yet, feel free to add it to `formatter.py` and file a pull request.</small>
 
-- Supports Markdown and reStructuredText
-- No non-Python dependencies, so hopefully trivial to install on shared hosts that support Pip.
+## Planned features
 
-### Planned
-
-- Web-based single user wiki with one click fetch-merge-pull
-- Web-based authenticating multi user wiki with support for Git smart HTTP push and pull
-- Mac OS X application bundle and wrapper for the single user app
-- Multiple formats with a WYSIWYG editor for HTML and CodeMirror for others
-- MathJax support
-- Code highlighting support
+- Themeable using Jinja
+- Attractive default theme
+	- LaTeX style math
+	- code syntax highlighting
+	- WYSIWYG HTML editing that doesn't suck with wysihtml5
+	- Syntax-highlighted editor for everything else with CodeMirror
+- Public WSGI web app mode for your server
+	- Authentication and per user permissions
+	- Serves your wiki as a Git server (smart-HTTP method)
+- Single user web app mode for your local machine
+	- Self-contained wrapper app for Mac OS X
+	- One click sync (fetch-merge-pull) with a server instance or any other Git server
 
 ## Extending
-
-I've tried to keep the code cleanly separated and fairly logical so that it's not too hard to dive in. The modules are as follows:
 
 - `core` defines the `Wiki` and `WikiPage` classes, which are responsible for dealing with the Git repository.
 - `web` is the web interface.
