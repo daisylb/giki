@@ -12,13 +12,25 @@ class DummyPage (object):
 
 def test_markdown():
 	p = DummyPage('mdown', "# h1\n\nparagraph")
-	assert '<h1>h1</h1>' in format(p)
+	t = format(p)
+	assert '<h1>h1</h1>' in t
+	assert '<html' not in t
+	assert '<body' not in t
 
 def test_rst():
 	p = DummyPage('rest', "h1\n==\n")
-	assert '<h1 class="title">h1</h1>' in format(p)
-	assert '<html' not in format(p)
-	assert '<body' not in format(p)
+	t = format(p)
+	assert '<h1 class="title">h1</h1>' in t
+	assert '<html' not in t
+	assert '<body' not in t
+
+def test_textile():
+	p = DummyPage('textile', "h1. test\n\n")
+	t = format(p)
+	print t
+	assert '<h1>test</h1>' in t
+	assert '<html' not in t
+	assert '<body' not in t
 
 def test_unknown():
 	p = DummyPage('aoeuaoeu', "<>&")

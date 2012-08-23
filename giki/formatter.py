@@ -1,5 +1,6 @@
 from markdown2 import markdown
 from docutils.core import publish_parts
+from textile import textile
 
 def rst(string):
 	"""Wraps the ReST parser in Docutils.
@@ -21,6 +22,7 @@ def rst(string):
 PAGE_FORMATS = (
 	('Markdown', ('mdown', 'markdown', 'md', 'mdn', 'mkdn', 'mkd', 'mdn'), markdown),
 	('reStructuredText', ('rst', 'rest'), rst),
+	('Textile', ('textile'), textile),
 	('HTML', ('html', 'htm'), lambda x: x),
 )
 
