@@ -5,15 +5,21 @@ Why create our own? Because all of the other microframeworks I could find rely o
 import re
 from wsgiref.simple_server import make_server
 from inspect import getmembers
+from cgi import parse_qs, escape
+from traceback import print_exc
+import sys
 
 class WebApp (object):
 	"""Subclass this to create a web app."""
 	
-	__mounted_views = []
+	__mounted_views = None
+	debug = False
 	
 	def bind_view(self, path, verbs, view):
 		"""Mount a view to a path."""
-		__mounted_views.append((path, verbs, view))
+		if self.__mounted_views is None:
+			self.__mounted_views = []
+		self.__mounted_views.append((path, verbs, view))
 	
 	def handle_internal_error(self, request, exc):
 		"""If a view raises an exception, then this handler is called. Override it to provide custom 500 handling.
@@ -26,6 +32,8 @@ class WebApp (object):
 		@param exc The exception that was raised.
 		@return an ErrorResponse instance.
 		"""
+		if self.debug:
+			print_exc(file=sys.stdout)
 		return ErrorResponse("<html><body><h1>500 Internal Server Error</h1></body></html>")
 
 	def handle_not_found(self, request, exc):
@@ -47,8 +55,9 @@ class WebApp (object):
 		This is not the callable itself, it *returns* the callable."""
 		
 		#Assemble views dictionary
-		decorated_views = [(x[1].path, x[1].verbs, x[1]) for x in getmembers(self) if getattr(x[1], "_is_web_view", False)]
-		views = decorated_views + self.__mounted_views
+		views = [(x[1].path, x[1].verbs, x[1]) for x in getmembers(self) if getattr(x[1], "_is_web_view", False)]
+		if self.__mounted_views is not None:
+			views += self.__mounted_views
 				
 		#compile regexes
 		views = [(re.compile(a), b, c) for (a, b, c) in views]
@@ -100,7 +109,29 @@ class Request (object):
 	@property
 	def path(self):
 		return self.environ['PATH_INFO']
+	
+	@property
+	def vars(self):
+		if self.method == 'POST':
+			request_body_size = int(self.environ.get('CONTENT_LENGTH', 0))
+			request_body = self.environ['wsgi.input'].read(request_body_size)
+			return Vars(request_body)
+		else:
+			return Vars(self.environ.get('QUERY_STRING', ''))
 
+class Vars (object):
+	def __init__(self, qs):
+		self.environ_dict = parse_qs(qs)
+	
+	def __getattr__(self, attr):
+		val = self.environ_dict.get(attr, None)
+		if val is None:
+			return None
+		elif len(val) == 1:
+			return val[0]
+		else:
+			return val
+	
 #####
 # VIEW DECORATORS
 
