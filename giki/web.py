@@ -34,6 +34,11 @@ class WebWiki (WebApp):
 		p.save(request.vars.author, request.vars.commit_msg)
 		return self.show_page(request, path)
 	
+	@post('^/\+create$')
+	def create_page(self, request):
+		p = wiki.create_page(request.vars.path, 'mdown', 'Example Exampleson <example@example.com>')
+		return TemporaryRedirectResponse('/' + request.vars.path)
+	
 	def handle_not_found(self, request, exc):
 		return Response(t.get_template('404.html').render(request=request))
 		
