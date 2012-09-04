@@ -1,4 +1,5 @@
 from giki.web_framework import WebApp, bind, get, post, Response, NotFoundException, STATUS_STRINGS
+from webtest import TestApp as TA
 
 class _TestApp (WebApp):
 	@bind(r'^/bind', ['GET', 'POST'])
@@ -16,6 +17,8 @@ class _TestApp (WebApp):
 	@post(r'^/post')
 	def test_post(self, request):
 		pass
+
+app = TA(_TestApp().wsgi())
 
 def _dummy_req(path, method='GET'):
 	return {
@@ -43,54 +46,17 @@ def test_bind_decorator():
 	assert test_app.test_post.verbs == ['POST']
 
 def test_routes():
-	test_app = _TestApp()
-	
-	environ = _dummy_req('/get/banana')
-		
-	assert test_app.wsgi()(environ, _noop) == ['abc']
+	r = app.get('/get/banana')
+	assert r.body == 'abc'
 
 def test_routing_404():
-	test_app = _TestApp()
-	
-	environ = _dummy_req('/eggs')
-	
-	response_run = [False]
-	
-	def start_response(status, headers):
-		assert status == STATUS_STRINGS[404]
-		response_run[0] = True
-		
-	test_app.wsgi()(environ, start_response)
-	
-	assert response_run[0]
+	r = app.get('/eggs', status=404)
+	assert r.status == STATUS_STRINGS[404]
 
 def test_404():
-	test_app = _TestApp()
-	
-	environ = _dummy_req('/eggs')
-	
-	response_run = [False]
-	
-	def start_response(status, headers):
-		assert status == STATUS_STRINGS[404]
-		response_run[0] = True
-		
-	test_app.wsgi()(environ, start_response)
-	
-	assert response_run[0]
+	r = app.get('/404', status=404)
+	assert r.status == STATUS_STRINGS[404]
 	
 def test_500():
-	test_app = _TestApp()
-	
-	environ = _dummy_req('/bind')
-	
-	response_run = [False]
-	
-	def start_response(status, headers):
-		assert status == STATUS_STRINGS[500]
-		response_run[0] = True
-		print 'yay'
-		
-	test_app.wsgi()(environ, start_response)
-	
-	assert response_run[0]
+	r = app.get('/bind', status=500)
+	assert r.status == STATUS_STRINGS[500]

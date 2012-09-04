@@ -18,6 +18,12 @@ setup(name='giki',
 		'docutils==0.9.1',
 		'textile==2.1.5',
 	],
+	extras_require = {
+		'test':  [
+			'nose==1.1.2',
+			'WebTest==1.4.0',
+		],
+	}
 	entry_points={
     'console_scripts':
         ['giki = giki.cli:main'],
