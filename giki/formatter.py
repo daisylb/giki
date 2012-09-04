@@ -16,11 +16,19 @@ def rst(string):
 		writer_name='html'
 	)['html_body']
 
+def md(string):
+	return markdown(string, extras=[
+		'fenced-code-blocks',
+		'footnotes',
+		'smarty-pants',
+		'wiki-tables',
+	])
+
 # A tuple containing all supported formats.
 # Each line goes (format name, tuple of possible file extensions, formatter)
 # where formatter is a callable that takes a string and returns a HTML string
 PAGE_FORMATS = (
-	('Markdown', ('mdown', 'markdown', 'md', 'mdn', 'mkdn', 'mkd', 'mdn'), markdown),
+	('Markdown', ('mdown', 'markdown', 'md', 'mdn', 'mkdn', 'mkd', 'mdn'), md),
 	('reStructuredText', ('rst', 'rest'), rst),
 	('Textile', ('textile'), textile),
 	('HTML', ('html', 'htm'), lambda x: x),
