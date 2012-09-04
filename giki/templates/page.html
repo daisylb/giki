@@ -4,6 +4,9 @@
 		<title>{{page.path}}</title>
 		<link rel=stylesheet href='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/css/bootstrap-combined.min.css'>
 		<script type='text/css' url='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/js/bootstrap.min.js'></script>
+		<link rel="stylesheet" href="http://codemirror.net/lib/codemirror.css">
+	    <script src="http://codemirror.net/lib/codemirror.js"></script>
+	    <script src="http://codemirror.net/mode/markdown/markdown.js"></script>
 	</head>
 	<body>
 		<div class='container'>
@@ -11,7 +14,7 @@
 			<hr>
 			<form method=post class='form-horizontal'>
 				<div class='control-group'>
-					<textarea name=content rows=20 class=span12>{{page.content}}</textarea>
+					<textarea name=content rows=20 id='editor' class=span12>{{page.content}}</textarea>
 				</div>
 				<div class='control-group'>
 					<label class="control-label" for=author>Author</label>
@@ -31,5 +34,8 @@
 				</div>
 			</form>
 		</div>
+		<script>
+			var editor = CodeMirror.fromTextArea(document.getElementById("editor"), {});
+		</script>
 	</body>
 </html>
