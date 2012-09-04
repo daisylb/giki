@@ -192,6 +192,9 @@ class Response (object):
 		self.headers.append((header, value))
 	
 	def _do_response(self, start_response):
+		if type(self.content) is unicode:
+			self.content = self.content.encode('utf8')
+			self.add_header('Content-Type', self.content_type + '; charset=UTF-8')
 		self.add_header('Content-Type', self.content_type)
 		self.add_header('Content-Length', str(len(self.content)))
 		start_response(STATUS_STRINGS.get(self.status, self.status), self.headers)

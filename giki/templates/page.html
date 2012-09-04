@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+	<head>
+		<title>{{page.path}}</title>
+		<link rel=stylesheet href='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/css/bootstrap-combined.min.css'>
+		<script type='text/css' url='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/js/bootstrap.min.js'></script>
+	</head>
+	<body>
+		<div class='container'>
+			{{content}}
+			<hr>
+			<form method=post class='form-horizontal'>
+				<div class='control-group'>
+					<textarea name=content rows=20 class=span12>{{page.content}}</textarea>
+				</div>
+				<div class='control-group'>
+					<label class="control-label" for=author>Author</label>
+					<div class="controls">
+						<input type=text name=author class=input-xxlarge value='Example Exampleson <example@example.com>'>
+					</div>
+				</div>
+				<div class='control-group'>
+					<label class="control-label" for=commit_msg>Commit Message</label>
+					<div class="controls">
+						<input type=text name=commit_msg class=input-xxlarge value='Example commit message'>
+					</div>
+				</div>
+				<div class=form-actions>
+					<button type=submit class='btn btn-primary btn-large'>Save</button>
+					<input type=hidden name=id value="{{page.commit_id}}">
+				</div>
+			</form>
+		</div>
+	</body>
+</html>

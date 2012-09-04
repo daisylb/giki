@@ -12,6 +12,7 @@ setup(name='giki',
 		if '__init__.py' in i[2]],
 	install_requires=[
 		'dulwich==0.8.5',
+		'jinja2==2.6',
 		# formatters
 		'markdown2==2.0.1',
 		'docutils==0.9.1',
