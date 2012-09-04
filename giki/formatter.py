@@ -28,16 +28,32 @@ def md(string):
 # Each line goes (format name, tuple of possible file extensions, formatter)
 # where formatter is a callable that takes a string and returns a HTML string
 PAGE_FORMATS = (
-	('Markdown', ('mdown', 'markdown', 'md', 'mdn', 'mkdn', 'mkd', 'mdn'), md),
-	('reStructuredText', ('rst', 'rest'), rst),
-	('Textile', ('textile'), textile),
-	('HTML', ('html', 'htm'), lambda x: x),
+	('Markdown', 'markdown', ('mdown', 'markdown', 'md', 'mdn', 'mkdn', 'mkd', 'mdn'), md),
+	('reStructuredText', 'rst', ('rst', 'rest'), rst),
+	('Textile', None, ('textile'), textile),
+	('HTML', None, ('html', 'htm'), lambda x: x),
 )
+
+def __get_pf(fmt):
+	for i in PAGE_FORMATS:
+		if fmt in i[2]:
+			return i
+	else:
+		return None, None, None, None
+	
 
 def format(page):
 	"""Converts a giki page object into HTML."""
-	for name, fmts, formatter in PAGE_FORMATS:
-		if page.fmt in fmts:
-			return formatter(page.content)
+	_, _, _, formatter = __get_pf(page.fmt)
+	
+	if formatter is not None:
+		return formatter(page.content)
 	else:
 		return "<code><pre>{}</pre></code>".format(page.content.replace('&', '&nbsp;').replace('<', '&lt;'))
+
+def get_names(page):
+	friendly_name, codemirror_name, _, _ = __get_pf(page.fmt)
+	if friendly_name is not None:
+		return friendly_name, codemirror_name
+	else:
+		return page.fmt, None

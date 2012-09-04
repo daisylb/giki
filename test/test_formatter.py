@@ -3,7 +3,7 @@
 These tests are not meant to be comprehensive tests of the external formatting libraries, but rather make sure that our wrapper code doesn't blow up.
 """
 
-from giki.formatter import format
+from giki.formatter import format, get_names
 
 class DummyPage (object):
 	def __init__(self, format, content):
@@ -35,3 +35,15 @@ def test_textile():
 def test_unknown():
 	p = DummyPage('aoeuaoeu', "<>&")
 	assert format(p) == "<code><pre>&lt;>&nbsp;</pre></code>"
+
+def test_names():
+	p = DummyPage('mdown', "# h1\n\nparagraph")
+	f, c = get_names(p)
+	assert f == 'Markdown'
+	assert c == 'markdown'
+
+def test_names_unknown():
+	p = DummyPage('aoeuaoeu', "# h1\n\nparagraph")
+	f, c = get_names(p)
+	assert f == 'aoeuaoeu'
+	assert c is None

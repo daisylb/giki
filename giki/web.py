@@ -1,6 +1,6 @@
 from .web_framework import WebApp, get, post, Response, TemporaryRedirectResponse, NotFoundException
 from .core import Wiki, PageNotFound
-from .formatter import format
+from .formatter import format, get_names
 from jinja2 import Environment, PackageLoader
 from StringIO import StringIO
 from traceback import print_exc
@@ -21,9 +21,12 @@ class WebWiki (WebApp):
 			p = wiki.get_page(path)
 		except PageNotFound:
 			raise NotFoundException()
+		fmt_human, fmt_cm = get_names(p)
 		attrs = {
 			'page': p,
 			'content': format(p),
+			'fmt_human': fmt_human,
+			'fmt_cm': fmt_cm,
 		}
 		return Response(t.get_template('page.html').render(**attrs))
 		
