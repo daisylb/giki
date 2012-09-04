@@ -29,7 +29,7 @@ class WebWiki (WebApp):
 		
 	@post('^/(?P<path>[^\+\.][^\.]+)')
 	def save_page(self, request, path):
-		p = wiki.get_page_at_commit(path, request.vars.commit)
+		p = wiki.get_page_at_commit(path, request.vars.commit_id)
 		p.content = request.vars.content
 		p.save(request.vars.author, request.vars.commit_msg)
 		return self.show_page(request, path)

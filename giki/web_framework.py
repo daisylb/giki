@@ -95,6 +95,8 @@ class WebApp (object):
 # REQUEST
 
 class Request (object):
+	__vars = None
+	
 	def __init__(self, environ):
 		self.environ = environ
 	
@@ -112,12 +114,14 @@ class Request (object):
 	
 	@property
 	def vars(self):
-		if self.method == 'POST':
-			request_body_size = int(self.environ.get('CONTENT_LENGTH', 0))
-			request_body = self.environ['wsgi.input'].read(request_body_size)
-			return Vars(request_body)
-		else:
-			return Vars(self.environ.get('QUERY_STRING', ''))
+		if self.__vars is None:
+			if self.method == 'POST':
+				request_body_size = int(self.environ.get('CONTENT_LENGTH', 0))
+				request_body = self.environ['wsgi.input'].read(request_body_size)
+				self.__vars = Vars(request_body)
+			else:
+				self.__vars = Vars(self.environ.get('QUERY_STRING', ''))
+		return self.__vars
 
 class Vars (object):
 	def __init__(self, qs):
