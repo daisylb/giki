@@ -9,11 +9,11 @@ giki is a web wiki powered by Git and your favourite markup language*. You can e
 ## Planned features
 
 - Themeable using Jinja
-- Attractive default theme
+- Bootstrap-based default theme (in progress)
 	- LaTeX style math
 	- code syntax highlighting
 	- WYSIWYG HTML editing that doesn't suck with wysihtml5
-	- Syntax-highlighted editor for everything else with CodeMirror
+	- Syntax-highlighted editor for everything else with CodeMirror (done)
 - Public WSGI web app mode for your server
 	- Authentication and per user permissions
 	- Serves your wiki as a Git server (smart-HTTP method)
