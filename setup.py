@@ -23,8 +23,8 @@ setup(name='giki',
 			'nose==1.1.2',
 			'WebTest==1.4.0',
 		],
-	}
-	entry_points={
+	},
+	entry_points = {
     'console_scripts':
         ['giki = giki.cli:main'],
 	},
