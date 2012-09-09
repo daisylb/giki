@@ -151,7 +151,7 @@ class WikiPage (object):
 						tree = Tree()
 						self._trees.append((i, tree))
 					else:
-						raise
+						raise PageNotFound()
 				else:
 					tree = self._repo.object_store[tree_id]
 					self._trees.append((i, tree))

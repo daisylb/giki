@@ -1,6 +1,6 @@
 from . import setups
 from nose import with_setup
-from giki.core import Wiki
+from giki.core import Wiki, PageNotFound
 
 @with_setup(setups.setup_bare_with_page, setups.teardown_bare)
 def test_read():
@@ -51,3 +51,27 @@ def test_create_new_subdir():
 	p = w.get_page('test2/test2')
 	assert p.content == '\n'
 	assert p.fmt == 'mdown'
+
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_nonexistent():
+	w = Wiki(setups.BARE_REPO_PATH)
+	try:
+		w.get_page('aoeuaoeuaoeu')
+	except PageNotFound:
+		pass
+
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_nonexistent_in_subdir():
+	w = Wiki(setups.BARE_REPO_PATH)
+	try:
+		w.get_page('test/aoeuaoeuaoeuaoeuaoeu')
+	except PageNotFound:
+		pass
+
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_nonexistent_subdir():
+	w = Wiki(setups.BARE_REPO_PATH)
+	try:
+		w.get_page('aoeuaoeuaoeuaoeu/aoeuaoeuaoeuaoeuaoeu')
+	except PageNotFound:
+		pass
