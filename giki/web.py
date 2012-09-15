@@ -24,9 +24,9 @@ class WebWiki (WebApp):
 		
 	@get(r'^/(?P<path>[^\+\.][^\.]+)')
 	def show_page(self, request, path):
-		get_permission(request, 'read')
+		self.get_permission(request, 'read')
 		try:
-			p = wiki.get_page(path)
+			p = self.wiki.get_page(path)
 		except PageNotFound:
 			raise NotFoundException()
 		fmt_human, fmt_cm = get_names(p)
@@ -40,16 +40,16 @@ class WebWiki (WebApp):
 		
 	@post(r'^/(?P<path>[^\+\.][^\.]+)')
 	def save_page(self, request, path):
-		author = get_permission(request, 'write')
-		p = wiki.get_page_at_commit(path, request.vars.commit_id)
+		author = self.get_permission(request, 'write')
+		p = self.wiki.get_page_at_commit(path, request.vars.commit_id)
 		p.content = request.vars.content
 		p.save(author, request.vars.commit_msg)
 		return self.show_page(request, path)
 	
 	@post(r'^/\+create$')
 	def create_page(self, request):
-		author = get_permission(request, 'write')
-		p = wiki.create_page(request.vars.path, 'mdown', author)
+		author = self.get_permission(request, 'write')
+		p = self.wiki.create_page(request.vars.path, 'mdown', author)
 		return TemporaryRedirectResponse('/' + request.vars.path)
 	
 	def handle_not_found(self, request, exc):
@@ -61,16 +61,10 @@ class WebWiki (WebApp):
 		return Response(t.get_template('500.html').render(request=request, traceback=io.getvalue()))
 
 class SingleUserWiki (WebWiki):
-	def __init__(self, author):
+	def __init__(self, wiki, author):
+		WebWiki.__init__(self, wiki)
 		self.author = author
 	
 	def get_permission(self, request, type):
 		return self.author
-
-if __name__ == "__main__":
-	from sys import argv
-	wiki = Wiki(argv[1])
-	app = WebWiki(wiki)
-	app.debug = True
-	app.serve(int(argv[2]))
 	

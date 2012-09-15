@@ -20,10 +20,39 @@ giki is a web wiki powered by Git and your favourite markup language*. You can e
 - Single user web app mode for your local machine
 	- Self-contained wrapper app for Mac OS X
 	- One click sync (fetch-merge-pull) with a server instance or any other Git server
+	
+## Usage
+
+### Single user wiki
+
+To run a single user wiki server on your local machine, from an existing Git repo, run the `giki` command.
+
+```shell
+$ giki -h
+usage: giki [-h] [-p, --port PORT] [-P, --path PATH] AUTHOR
+
+Run a single user Git wiki server
+
+positional arguments:
+  AUTHOR           Author in Git "name <email>" syntax to sign commits with
+
+optional arguments:
+  -h, --help       show this help message and exit
+  -p, --port PORT  Port to serve on
+  -P, --path PATH  Path to the Git bare repo
+
+  $ git init --bare .
+  Initialized empty Git repository in /Users/Adam/personal_projects/giki/temp/
+
+$ giki "Test User <test@example.com>"
+Starting wiki at http://localhost:8080/. Press ^C to exit.
+```
 
 ## Extending
 
-- `core` defines the `Wiki` and `WikiPage` classes, which are responsible for dealing with the Git repository.
-- `web` is the web interface.
-- `web_framework` is a micro-framework that looks and works a lot like Flask and friends, except using a class instead of module globals.
-- `formatter` converts formats like Markdown and friends to HTML.
+There's no lovely Sphinx docs yet, but everything important should have a docstring.
+
+- `core` defines the `Wiki` and `WikiPage` classes, which are responsible for dealing with the Git repository. Anything that touches Git should go here.
+- `formatter` converts formats like Markdown and friends to HTML. Anything responsible for turning raw markup into generic, unstyled HTML should go here.
+- `web` is the web interface. Anything responsible formatting the HTML, providing interactive functions, and so on, goes here.
+- `web_framework` is a Flask-inspired object-based WSGI micro-framework that has no module globals or thread locals, allowing multiple apps in the same process.
