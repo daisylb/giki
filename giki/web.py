@@ -11,12 +11,20 @@ class WebWiki (WebApp):
 	def __init__(self, wiki):
 		self.wiki = wiki
 	
-	@get('^/$')
+	def get_permission(self, request, type):
+		"""Override this to implement permissions.
+		
+		@param type 'read' or 'write' as appropriate.
+		@return the appropriate Git author string."""
+		return 'Example Exampleson <example@example.com>'
+	
+	@get(r'^/$')
 	def home(self, request):
 		return TemporaryRedirectResponse('/index')
 		
-	@get('^/(?P<path>[^\+\.][^\.]+)')
+	@get(r'^/(?P<path>[^\+\.][^\.]+)')
 	def show_page(self, request, path):
+		get_permission(request, 'read')
 		try:
 			p = wiki.get_page(path)
 		except PageNotFound:
@@ -30,16 +38,18 @@ class WebWiki (WebApp):
 		}
 		return Response(t.get_template('page.html').render(**attrs))
 		
-	@post('^/(?P<path>[^\+\.][^\.]+)')
+	@post(r'^/(?P<path>[^\+\.][^\.]+)')
 	def save_page(self, request, path):
+		author = get_permission(request, 'write')
 		p = wiki.get_page_at_commit(path, request.vars.commit_id)
 		p.content = request.vars.content
-		p.save(request.vars.author, request.vars.commit_msg)
+		p.save(author, request.vars.commit_msg)
 		return self.show_page(request, path)
 	
-	@post('^/\+create$')
+	@post(r'^/\+create$')
 	def create_page(self, request):
-		p = wiki.create_page(request.vars.path, 'mdown', 'Example Exampleson <example@example.com>')
+		author = get_permission(request, 'write')
+		p = wiki.create_page(request.vars.path, 'mdown', author)
 		return TemporaryRedirectResponse('/' + request.vars.path)
 	
 	def handle_not_found(self, request, exc):
@@ -49,6 +59,13 @@ class WebWiki (WebApp):
 		io = StringIO()
 		print_exc(file=io)
 		return Response(t.get_template('500.html').render(request=request, traceback=io.getvalue()))
+
+class SingleUserWiki (WebWiki):
+	def __init__(self, author):
+		self.author = author
+	
+	def get_permission(self, request, type):
+		return self.author
 
 if __name__ == "__main__":
 	from sys import argv
