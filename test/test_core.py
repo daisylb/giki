@@ -1,3 +1,5 @@
+# coding: utf-8
+from __future__ import unicode_literals
 from . import setups
 from nose import with_setup
 from giki.core import Wiki, PageNotFound, PageExists
@@ -92,3 +94,24 @@ def test_create_existent():
 	else:
 		assert False
 
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_unicode_titles():
+	w = Wiki(setups.BARE_REPO_PATH)
+	w.create_page('いろはにほへとち/test', 'mdown', setups.EXAMPLE_AUTHOR)
+	p = w.get_page('いろはにほへとち/test')
+
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_unicode_text():
+	w = Wiki(setups.BARE_REPO_PATH)
+	p = w.get_page('test/test')
+	p.content = 'いろはにほへとち\n'
+	p.save(setups.EXAMPLE_AUTHOR, 'unicode test')
+	assert w.get_page('test/test').content == 'いろはにほへとち\n'
+
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_unicode_author():
+	w = Wiki(setups.BARE_REPO_PATH)
+	p = w.get_page('index')
+	p.content = 'More Content\n'
+	p.save('いろはにほへとち <unicode@author.com>', 'more stuff')
+	# TODO: assert that author is in the history correctly

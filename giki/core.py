@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from dulwich.repo import Repo
 from dulwich.objects import Blob, Commit, Tree
 from time import time
@@ -7,6 +8,7 @@ class Wiki (object):
 
 	_repo = None # Dulwich repo
 	_ref = '' # the ref name to use
+	_encoding = 'utf-8'
 
 	def __init__(self, repo_path, ref_name="refs/heads/master"):
 		"""Sets up the object.
@@ -95,7 +97,7 @@ class WikiPage (object):
 		self._orig_content = '!'
 		self.content = "\n"
 		self.fmt = fmt
-		self.save(author, 'Created {}'.format(self.path))
+		self.save(author.encode(self.wiki._encoding), 'Created {}'.format(self.path).encode(self.wiki._encoding))
 
 	def _load(self):
 		id = self._repo.ref(self.wiki._ref)
@@ -108,7 +110,7 @@ class WikiPage (object):
 		blob = self._find_blob()
 
 
-		self._orig_content = self.content = self._repo.object_store[blob.sha].as_raw_string()
+		self._orig_content = self.content = self._repo.object_store[blob.sha].as_raw_string().decode(self.wiki._encoding)
 
 	def _walk_trees(self, create=False):
 		"""Populates `_trees` and `_filename`"""
@@ -121,7 +123,7 @@ class WikiPage (object):
 			# loop through trees to find the immediate parent of our page
 			tree = self._trees[0][1]
 			for i in patharr[:-1]:
-				
+				i = i.encode(self.wiki._encoding)
 				try:
 					tree_id = tree[i][1]
 				except KeyError:
@@ -170,8 +172,8 @@ class WikiPage (object):
 			self.content += "\n"
 
 		#save updated content to the tree
-		blob = Blob.from_string(self.content)
-		full_filename = '.'.join((self._filename, self.fmt))
+		blob = Blob.from_string(self.content.encode(self.wiki._encoding))
+		full_filename = '.'.join((self._filename, self.fmt)).encode(self.wiki._encoding)
 
 		immediate_parent_tree = self._trees[-1][1]
 
@@ -192,7 +194,7 @@ class WikiPage (object):
 		commit = Commit()
 		commit.tree = self._trees[0][1].id
 		commit.parents = [self.commit_id]
-		commit.author = commit.committer = author
+		commit.author = commit.committer = author.encode(self.wiki._encoding)
 		commit.commit_time = commit.author_time = int(time())
 		commit.commit_timezone = commit.author_timezone = 0
 		commit.encoding = "UTF-8"
