@@ -48,6 +48,14 @@ $ giki "Test User <test@example.com>"
 Starting wiki at http://localhost:8080/. Press ^C to exit.
 ```
 
+## Web interface screenshots
+
+The web interface is themeable using Jinja; these are just the default theme.
+
+![](https://raw.github.com/adambrenecki/giki/master/view.png)
+
+![](https://raw.github.com/adambrenecki/giki/master/edit.png)
+
 ## Extending
 
 There's no lovely Sphinx docs yet, but everything important should have a docstring.
