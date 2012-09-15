@@ -84,34 +84,18 @@ class WikiPage (object):
 		self.commit_id = self._repo.ref(self.wiki._ref)
 		self._commit = self._repo.commit(self.commit_id)
 		self._walk_trees(True)
+
+		try:
+			self._find_blob()
+		except PageNotFound:
+			pass
+		else:
+			raise PageExists()
+
 		self._orig_content = '!'
 		self.content = "\n"
-
 		self.fmt = fmt
 		self.save(author, 'Created {}'.format(self.path))
-
-		# #save updated content to the tree
-		# blob = Blob.from_string('\n')
-		# filepath = '.'.join((path, fmt))
-		# tree[filepath] = (0100644, blob.id)
-
-		# #create a commit
-		# commit = Commit()
-		# commit.tree = tree.id
-		# commit.parents = [old_commit_id]
-		# commit.author = commit.committer = author
-		# commit.commit_time = commit.author_time = int(time())
-		# commit.commit_timezone = commit.author_timezone = 0
-		# commit.encoding = "UTF-8"
-		# commit.message = "Create page {} with format {}".format(path, fmt)
-
-		# #write
-		# self._repo.object_store.add_object(blob)
-		# self._repo.object_store.add_object(tree)
-		# self._repo.object_store.add_object(commit)
-
-		#update refs, to hell with concurrency (for now)
-		# self._repo.refs[self._ref] = commit.id
 
 	def _load(self):
 		id = self._repo.ref(self.wiki._ref)
@@ -121,15 +105,8 @@ class WikiPage (object):
 		self.commit_id = commit_id
 		self._commit = self._repo.commit(commit_id)
 		self._walk_trees()
+		blob = self._find_blob()
 
-		# find a blob that matches our page's name, and discover its format
-		for i in self._repo.object_store.iter_tree_contents(self._trees[-1][1].id):
-			if i.path.startswith("{}.".format(self._filename)):
-				self.fmt = i.path.split(".")[1]
-				blob = i
-				break
-		else:
-			raise PageNotFound()
 
 		self._orig_content = self.content = self._repo.object_store[blob.sha].as_raw_string()
 
@@ -144,6 +121,7 @@ class WikiPage (object):
 			# loop through trees to find the immediate parent of our page
 			tree = self._trees[0][1]
 			for i in patharr[:-1]:
+				
 				try:
 					tree_id = tree[i][1]
 				except KeyError:
@@ -157,6 +135,21 @@ class WikiPage (object):
 					self._trees.append((i, tree))
 		else:
 			self._filename = self.path
+
+	def _find_blob(self):
+		# find a blob that matches our page's name, and discover its format
+		try:
+			tc = self._repo.object_store.iter_tree_contents(self._trees[-1][1].id)
+			for i in tc:
+				if i.path.startswith("{}.".format(self._filename)):
+					self.fmt = i.path.split(".")[1]
+					blob = i
+					break
+			else:
+				raise PageNotFound()
+		except KeyError:
+			raise PageNotFound()
+		return blob
 
 	def save(self, author, change_msg=''):
 		"""Saves a page to the respository.
@@ -210,6 +203,9 @@ class WikiPage (object):
 		self._repo.refs[self.wiki._ref] = commit.id
 
 class PageNotFound (Exception):
+	pass
+
+class PageExists (Exception):
 	pass
 
 class ManualMergeRequired (Exception):

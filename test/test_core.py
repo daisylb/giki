@@ -1,6 +1,6 @@
 from . import setups
 from nose import with_setup
-from giki.core import Wiki, PageNotFound
+from giki.core import Wiki, PageNotFound, PageExists
 
 @with_setup(setups.setup_bare_with_page, setups.teardown_bare)
 def test_read():
@@ -59,6 +59,8 @@ def test_nonexistent():
 		w.get_page('aoeuaoeuaoeu')
 	except PageNotFound:
 		pass
+	else:
+		assert False
 
 @with_setup(setups.setup_bare_with_page, setups.teardown_bare)
 def test_nonexistent_in_subdir():
@@ -67,6 +69,8 @@ def test_nonexistent_in_subdir():
 		w.get_page('test/aoeuaoeuaoeuaoeuaoeu')
 	except PageNotFound:
 		pass
+	else:
+		assert False
 
 @with_setup(setups.setup_bare_with_page, setups.teardown_bare)
 def test_nonexistent_subdir():
@@ -75,3 +79,16 @@ def test_nonexistent_subdir():
 		w.get_page('aoeuaoeuaoeuaoeu/aoeuaoeuaoeuaoeuaoeu')
 	except PageNotFound:
 		pass
+	else:
+		assert False
+
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_create_existent():
+	w = Wiki(setups.BARE_REPO_PATH)
+	try:
+		w.create_page('test/test', 'mdown', setups.EXAMPLE_AUTHOR)
+	except PageExists:
+		pass
+	else:
+		assert False
+
