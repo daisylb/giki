@@ -1,5 +1,7 @@
 # giki - a Git-powered wiki
 
+[![Build Status](https://secure.travis-ci.org/adambrenecki/giki.png)](http://travis-ci.org/adambrenecki/giki)
+
 **Not ready to be used yet!**
 
 giki is a web wiki powered by Git and your favourite markup language*. You can edit it through a nice web interface, or clone it like a normal Git repository.
