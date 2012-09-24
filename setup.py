@@ -23,6 +23,9 @@ setup(name='giki',
 			'nose==1.1.2',
 			'WebTest==1.4.0',
 		],
+		'faster_markdown':  [
+			'misaka==1.0.2',
+		],
 	},
 	entry_points = {
     'console_scripts':

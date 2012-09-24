@@ -1,4 +1,3 @@
-from markdown2 import markdown
 from docutils.core import publish_parts
 from textile import textile
 
@@ -16,13 +15,28 @@ def rst(string):
 		writer_name='html'
 	)['html_body']
 
-def md(string):
-	return markdown(string, extras=[
-		'fenced-code-blocks',
-		'footnotes',
-		'smarty-pants',
-		'wiki-tables',
-	])
+# Markdown uses Misaka if available, falling back to Markdown2
+try:
+	import misaka
+except ImportError:
+	from markdown2 import markdown
+	def md(string):
+		return markdown(string, extras=[
+			'fenced-code-blocks',
+			'footnotes',
+			'smarty-pants',
+			'wiki-tables',
+		])
+else:
+	def md(string):
+		return misaka.html(string, extensions=
+			misaka.EXT_STRIKETHROUGH |
+			misaka.EXT_TABLES |
+			misaka.EXT_FENCED_CODE |
+			misaka.EXT_AUTOLINK |
+			misaka.EXT_SUPERSCRIPT ,
+			render_flags=misaka.HTML_SMARTYPANTS
+		)
 
 # A tuple containing all supported formats.
 # Each line goes (format name, tuple of possible file extensions, formatter)
@@ -47,7 +61,8 @@ def format(page):
 	_, _, _, formatter = __get_pf(page.fmt)
 	
 	if formatter is not None:
-		return formatter(page.content)
+		formatted_text = formatter(page.content)
+		return formatted_text.replace('<table>', '<table class="table">')
 	else:
 		return "<code><pre>{}</pre></code>".format(page.content.replace('&', '&nbsp;').replace('<', '&lt;'))
 
