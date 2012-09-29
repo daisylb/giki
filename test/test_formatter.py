@@ -34,7 +34,7 @@ def test_textile():
 
 def test_unknown():
 	p = DummyPage('aoeuaoeu', "<>&")
-	assert format(p) == "<code><pre>&lt;>&nbsp;</pre></code>"
+	assert format(p) == "<code><pre>&lt;&gt;&nbsp;</pre></code>"
 
 def test_names():
 	p = DummyPage('mdown', "# h1\n\nparagraph")
