@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from docutils.core import publish_parts
 from textile import textile
 try:

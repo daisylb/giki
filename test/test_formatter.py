@@ -2,7 +2,7 @@
 
 These tests are not meant to be comprehensive tests of the external formatting libraries, but rather make sure that our wrapper code doesn't blow up.
 """
-
+from __future__ import unicode_literals
 from giki.formatter import format, get_names
 
 class DummyPage (object):

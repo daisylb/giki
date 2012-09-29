@@ -42,7 +42,7 @@ class WebWiki (WebApp):
 	def save_page(self, request, path):
 		author = self.get_permission(request, 'write')
 		p = self.wiki.get_page_at_commit(path, request.vars.commit_id)
-		p.content = request.vars.content
+		p.content = request.vars.content.decode('utf8')
 		p.save(author, request.vars.commit_msg)
 		return self.show_page(request, path)
 	
