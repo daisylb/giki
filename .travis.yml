@@ -8,3 +8,6 @@ install:
 # command to run tests, e.g. python setup.py test
 script:
   - "nosetests"
+branches:
+  only:
+    - master
