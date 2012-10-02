@@ -1,4 +1,3 @@
-from .web_framework import WebApp, get, post, Response, TemporaryRedirectResponse, NotFoundException
 from .core import Wiki, PageNotFound
 from .formatter import format, get_names
 from jinja2 import Environment, PackageLoader
@@ -11,12 +10,22 @@ class WebWiki (WebApp):
 	def __init__(self, wiki):
 		self.wiki = wiki
 	
+	# WSGI stuff
+	
+	def wsgi_app(self, environ, start_response):
+		pass
+	
+	def __call__(self, environ, start_response):
+		return self.wsgi_app(environ, start_response)
+	
 	def get_permission(self, request, type):
 		"""Override this to implement permissions.
 		
 		@param type 'read' or 'write' as appropriate.
 		@return the appropriate Git author string."""
 		return 'Example Exampleson <example@example.com>'
+	
+	# Actual application stuff
 	
 	@get(r'^/$')
 	def home(self, request):
