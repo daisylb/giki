@@ -4,19 +4,42 @@ from jinja2 import Environment, PackageLoader
 from StringIO import StringIO
 from traceback import print_exc
 
+from werkzeug.wrappers import Request, Response
+from werkzeug.routing import Map, Rule
+
 t = Environment(loader=PackageLoader('giki', 'templates'))
 
-class WebWiki (WebApp):
+class WebWiki (object):
+	debug = False
+	
 	def __init__(self, wiki):
 		self.wiki = wiki
+		
+		# construct routing map
+		self.url_map = Map([
+			Rule('/', endpoint='home'),
+			Rule('/<page>', endpoint='page'),
+			Rule('/+create', endpoint='create'),
+		])
 	
 	# WSGI stuff
 	
 	def wsgi_app(self, environ, start_response):
-		pass
+		request = Request(environ)
+		response = self.dispatcher(request)
+		return response(environ, start_response)
+	
+	def dispatcher(self, request):
+		return Response('Hello World!')
 	
 	def __call__(self, environ, start_response):
 		return self.wsgi_app(environ, start_response)
+	
+	def serve(self, port=8080):
+		from werkzeug.serving import run_simple
+		run_simple('127.0.0.1', port, self, use_debugger=self.debug, use_reloader=self.debug)
+	
+	# Authentication stuff
 	
 	def get_permission(self, request, type):
 		"""Override this to implement permissions.
@@ -27,11 +50,9 @@ class WebWiki (WebApp):
 	
 	# Actual application stuff
 	
-	@get(r'^/$')
 	def home(self, request):
 		return TemporaryRedirectResponse('/index')
 		
-	@get(r'^/(?P<path>[^\+\.][^\.]+)')
 	def show_page(self, request, path):
 		self.get_permission(request, 'read')
 		try:
@@ -47,7 +68,6 @@ class WebWiki (WebApp):
 		}
 		return Response(t.get_template('page.html').render(**attrs))
 		
-	@post(r'^/(?P<path>[^\+\.][^\.]+)')
 	def save_page(self, request, path):
 		author = self.get_permission(request, 'write')
 		p = self.wiki.get_page_at_commit(path, request.vars.commit_id)
@@ -55,7 +75,6 @@ class WebWiki (WebApp):
 		p.save(author, request.vars.commit_msg)
 		return self.show_page(request, path)
 	
-	@post(r'^/\+create$')
 	def create_page(self, request):
 		author = self.get_permission(request, 'write')
 		p = self.wiki.create_page(request.vars.path, 'mdown', author)
