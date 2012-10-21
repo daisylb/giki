@@ -78,6 +78,11 @@
 				editing = !editing;
 				refresh_view();
 			}
+			window.onbeforeunload = function(){
+				if (editing){
+					return "You have unsaved changes.";
+				}
+			}
 		</script>
 	</body>
 </html>
