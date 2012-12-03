@@ -30,11 +30,25 @@ class WebWiki (WebApp):
 		except PageNotFound:
 			raise NotFoundException()
 		fmt_human, fmt_cm = get_names(p)
+		
+		# get path components for breadcrumb
+		split_path = path.split('/')
+		path_components = []
+		if path != self.wiki.default_page:
+			for i, cpt in enumerate(split_path):
+				out_cpt = {
+					'name': cpt,
+					'path': '/'.join(split_path[:i])
+				}
+				path_components.append(out_cpt)
+		
 		attrs = {
 			'page': p,
 			'content': format(p),
 			'fmt_human': fmt_human,
 			'fmt_cm': fmt_cm,
+			'path_components': path_components,
+			'default_page': self.wiki.default_page,
 		}
 		return Response(t.get_template('page.html').render(**attrs))
 		

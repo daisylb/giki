@@ -9,6 +9,7 @@ class Wiki (object):
 	_repo = None # Dulwich repo
 	_ref = '' # the ref name to use
 	_encoding = 'utf-8'
+	default_page = 'index'
 
 	def __init__(self, repo_path, ref_name="refs/heads/master"):
 		"""Sets up the object.

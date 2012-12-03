@@ -21,14 +21,40 @@
 				overflow-y: hidden;
 				overflow-x: auto;
 			}
+			.breadcrumb {
+				display: inline;
+				background: none;
+			}
+			#top-row {
+				padding: 10px 5px;
+				margin: 5px 0;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+				vertical-align: middle;
+			}
+			#top-row button {
+				position: relative;
+				top: -5px;
+			}
 		</style>
 	</head>
 	<body>
 		<div class='container'>
 			<div id='wiki-view'>
-				<span style='float: right;'>
-					<button class='btn' onclick='edit();'>Edit</button>
-				</span>
+				<div id='top-row'>
+					<ul class="breadcrumb">
+						<li><a href="/">{{default_page}}</a></li>
+						{% for cpt in path_components %}
+							<li>
+								<span class="divider">/</span>
+								<a href="/{{cpt.path}}">{{cpt.name}}</a>
+							</li>
+						{% endfor %}
+					</ul>
+					<span style='float: right;'>
+						<button class='btn' onclick='edit();'>Edit</button>
+					</span>
+				</div>
 				{{content}}
 			</div>
 			<div id='wiki-edit'>
