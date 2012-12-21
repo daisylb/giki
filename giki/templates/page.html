@@ -14,21 +14,49 @@
 		{% endif %}
 		<style type='text/css'>
 			.CodeMirror {
-				font-size: 16px;
+				font-size: 13.5px;
+				font-family: 'Source Code Pro', 'Anonymous Pro', Menlo, 'Courier New', Courier, monospace;
+				border-bottom: 1px #ddd solid;
+				height: auto !important;
 			}
 			.CodeMirror-scroll {
-				height: auto;
-				overflow-y: hidden;
-				overflow-x: auto;
+				overflow-y: hidden !important;
+				overflow-x: auto !important;
+			}
+			.breadcrumb {
+				display: inline;
+				background: none;
+			}
+			#top-row {
+				padding: 10px 5px;
+				margin: 5px 0;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+				vertical-align: middle;
+			}
+			#top-row button {
+				position: relative;
+				top: -5px;
 			}
 		</style>
 	</head>
 	<body>
 		<div class='container'>
 			<div id='wiki-view'>
-				<span style='float: right;'>
-					<button class='btn' onclick='edit();'>Edit</button>
-				</span>
+				<div id='top-row'>
+					<ul class="breadcrumb">
+						<li><a href="/">{{default_page}}</a></li>
+						{% for cpt in path_components %}
+							<li>
+								<span class="divider">/</span>
+								<a href="/{{cpt.path}}">{{cpt.name}}</a>
+							</li>
+						{% endfor %}
+					</ul>
+					<span style='float: right;'>
+						<button class='btn' onclick='edit();'>Edit</button>
+					</span>
+				</div>
 				{{content}}
 			</div>
 			<div id='wiki-edit'>
@@ -42,7 +70,7 @@
 							<div class='navbar-form container'>
 								<div class='pull-right'>
 									<input type=text name=commit_msg class='input-xxlarge' placeholder='Change description'>
-									<button type=submit class='btn btn-primary'>Save</button>
+									<button type=submit class='btn btn-primary' onclick="editing=false;">Save</button>
 								</div>
 								<button type=reset class='btn pull-left'>Cancel</button>
 							</div>
@@ -77,6 +105,11 @@
 			function toggle_edit(){
 				editing = !editing;
 				refresh_view();
+			}
+			window.onbeforeunload = function(){
+				if (editing){
+					return "You have unsaved changes.";
+				}
 			}
 		</script>
 	</body>
