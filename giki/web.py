@@ -67,7 +67,7 @@ class WebWiki (object):
 				p = self.wiki.get_page(path)
 			except PageNotFound:
 				raise NotFound()
-				fmt_human, fmt_cm = get_names(p)
+			fmt_human, fmt_cm = get_names(p)
 
 			# get path components for breadcrumb
 			split_path = path.split('/')
@@ -95,6 +95,9 @@ class WebWiki (object):
 			p.content = request.vars.content.decode('utf8')
 			p.save(author, request.vars.commit_msg)
 			return self.show_page(request, path)
+
+	def __repr__(self):
+		return super(WebWiki, self).__repr__()
 
 	def create_page(self, request):
 		author = self.get_permission(request, 'write')
