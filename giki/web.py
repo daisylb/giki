@@ -91,10 +91,10 @@ class WebWiki (object):
 			return Response(t.get_template('page.html').render(**attrs), mimetype='text/html')
 		elif request.method == 'POST':
 			author = self.get_permission(request, 'write')
-			p = self.wiki.get_page_at_commit(path, request.vars.commit_id)
-			p.content = request.vars.content.decode('utf8')
-			p.save(author, request.vars.commit_msg)
-			return self.show_page(request, path)
+			p = self.wiki.get_page_at_commit(path, request.form['commit_id'])
+			p.content = request.form['content'].decode('utf8')
+			p.save(author, request.form['commit_msg'])
+			return redirect('/' + path)
 
 	def __repr__(self):
 		return super(WebWiki, self).__repr__()
