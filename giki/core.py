@@ -33,6 +33,11 @@ class Wiki (object):
 		p._load()
 		return p
 
+	def get_page_at_branch(self, path, branch_name):
+		p = WikiPage(self, path)
+		p._load_from_ref("refs/heads/{}".format(branch_name))
+		return p
+
 	def get_page_at_commit(self, path, id):
 		"""Gets the page at a particular path, at the commit with a particular sha.
 
@@ -102,6 +107,10 @@ class WikiPage (object):
 
 	def _load(self):
 		id = self._repo.ref(self.wiki._ref)
+		self._load_from_commit(id)
+
+	def _load_from_ref(self, ref):
+		id = self._repo.ref(ref)
 		self._load_from_commit(id)
 
 	def _load_from_commit(self, commit_id):

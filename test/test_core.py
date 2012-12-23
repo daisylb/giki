@@ -9,6 +9,11 @@ def test_read():
 	w = Wiki(setups.BARE_REPO_PATH)
 	assert w.get_page('index').content == setups.EXAMPLE_TEXT
 
+@with_setup(setups.setup_bare_with_two_branches, setups.teardown_bare)
+def test_read_from_ref():
+	w = Wiki(setups.BARE_REPO_PATH)
+	assert w.get_page_at_branch('index', 'branch2').content == setups.EXAMPLE_TEXT_2
+
 @with_setup(setups.setup_bare_with_page, setups.teardown_bare)
 def test_write():
 	w = Wiki(setups.BARE_REPO_PATH)
