@@ -20,7 +20,7 @@ class WebWiki (object):
 		# construct routing map
 		self.url_map = Map([
 			Rule('/', endpoint='home'),
-			Rule('/<path>', endpoint='show_page'),
+			Rule('/<path:path>', endpoint='show_page'),
 			Rule('/+create', endpoint='create_page'),
 		])
 
