@@ -92,7 +92,7 @@ class WebWiki (object):
 		elif request.method == 'POST':
 			author = self.get_permission(request, 'write')
 			p = self.wiki.get_page_at_commit(path, request.form['commit_id'])
-			p.content = request.form['content'].decode('utf8')
+			p.content = request.form['content']
 			p.save(author, request.form['commit_msg'])
 			return redirect('/' + path)
 
