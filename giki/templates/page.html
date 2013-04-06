@@ -79,6 +79,7 @@
 				$('#wiki-view').toggle(!editing);
 				$('#wiki-edit').toggle(editing);
 				$('#edit-toolbar').toggle(editing);
+				if (editing) editor.resize();
 			}
 			refresh_view();
 			function view(){
