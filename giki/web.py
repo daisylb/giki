@@ -31,6 +31,8 @@ class WebWiki (object):
 		try:
 			endpoint, values = adapter.match()
 			return getattr(self, endpoint)(request, **values)
+		except NotFound as e:
+			return self.handle_not_found(request)
 		except HTTPException, e:
 			return e
 
@@ -101,11 +103,13 @@ class WebWiki (object):
 
 	def create_page(self, request):
 		author = self.get_permission(request, 'write')
-		p = self.wiki.create_page(request.vars.path, 'mdown', author)
-		return redirect('/' + request.vars.path)
+		p = self.wiki.create_page(request.form['path'], 'mdown', author)
+		return redirect('/' + request.form['path'])
 
-	def handle_not_found(self, request, exc):
-		return Response(t.get_template('404.html').render(request=request))
+	def handle_not_found(self, request):
+		r = Response(t.get_template('404.html').render(request=request), mimetype='text/html')
+		r.status_code = 404
+		return r
 
 	def handle_internal_error(self, request, exc):
 		io = StringIO()
