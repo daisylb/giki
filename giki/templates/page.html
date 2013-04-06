@@ -51,10 +51,10 @@
 				{{content}}
 			</div>
 			<div id='wiki-edit'>
-				<form method=post class='form-horizontal'>
+				<form method=post id=editform class='form-horizontal'>
 					<input type=hidden name='commit_id' value="{{page.commit_id}}">
 					<div class='control-group'>
-						<div id='editor' class=span12>{{page.content|escape}}</textarea>
+						<div id='editor' class=span12>{{page.content|escape}}</div>
 					</div>
 					<div id='edit-toolbar' class='navbar navbar-fixed-bottom'>
 						<div class="navbar-inner">
@@ -93,6 +93,12 @@
 				editing = !editing;
 				refresh_view();
 			}
+			$('#editform').on('submit', function(){
+				var textarea = $('<textarea name=content>');
+				textarea.html(editor.getSession().getValue());
+				textarea.css('display', 'none');
+				$(this).append(textarea);
+			});
 			window.onbeforeunload = function(){
 				if (editing){
 					return "You have unsaved changes.";
