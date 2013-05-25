@@ -14,6 +14,7 @@
 		{% endif %}
 		<style type='text/css'>
 			.CodeMirror {
+				margin-top: 20px;
 				font-size: 13.5px;
 				font-family: 'Source Code Pro', 'Anonymous Pro', Menlo, 'Courier New', Courier, monospace;
 				border-bottom: 1px #ddd solid;
@@ -61,20 +62,20 @@
 			</div>
 			<div id='wiki-edit'>
 				<form method=post class='form-horizontal'>
-					<input type=hidden name='commit_id' value="{{page.commit_id}}">
-					<div class='control-group'>
-						<textarea name=content rows=20 id='editor' class=span12>{{page.content}}</textarea>
-					</div>
-					<div id='edit-toolbar' class='navbar navbar-fixed-bottom'>
+					<div id='edit-toolbar' class='navbar navbar-fixed-top'>
 						<div class="navbar-inner">
 							<div class='navbar-form container'>
 								<div class='pull-right'>
 									<input type=text name=commit_msg class='input-xxlarge' placeholder='Change description'>
 									<button type=submit class='btn btn-primary' onclick="editing=false;">Save</button>
 								</div>
-								<button class='btn pull-left' onclick="view();">Cancel</button>
+								<button type=reset class='btn pull-left' onclick="view();">Cancel</button>
 							</div>
 						</div>
+					</div>
+					<input type=hidden name='commit_id' value="{{page.commit_id}}">
+					<div class='control-group'>
+						<textarea name=content rows=20 id='editor' class=span12>{{page.content}}</textarea>
 					</div>
 				</form>
 			</div>
