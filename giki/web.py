@@ -20,10 +20,10 @@ class WebWiki (WebApp):
 
 	# Authentication stuff
 
-	def get_permission(self, request, type):
+	def get_permission(self, request, kind):
 		"""Override this to implement permissions.
 
-		@param type 'read' or 'write' as appropriate.
+		@param kind 'read' or 'write' as appropriate.
 		@return the appropriate Git author string."""
 		return 'Example Exampleson <example@example.com>'
 
@@ -94,5 +94,5 @@ class SingleUserWiki (WebWiki):
 		WebWiki.__init__(self, wiki)
 		self.author = author
 
-	def get_permission(self, request, type):
+	def get_permission(self, request, kind):
 		return self.author
