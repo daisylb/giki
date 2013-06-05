@@ -4,49 +4,19 @@ from jinja2 import Environment, PackageLoader
 from StringIO import StringIO
 from traceback import print_exc
 
-from werkzeug.wrappers import Request, Response
-from werkzeug.routing import Map, Rule
+from werkzeug.wrappers import Response
 from werkzeug.utils import redirect
-from werkzeug.exceptions import HTTPException, NotFound
+from werkzeug.exceptions import NotFound
+
+from .web_framework import WebApp, get, post, bind
 
 t = Environment(loader=PackageLoader('giki', 'templates'))
 
-class WebWiki (object):
+class WebWiki (WebApp):
 	debug = False
 
 	def __init__(self, wiki):
 		self.wiki = wiki
-
-		# construct routing map
-		self.url_map = Map([
-			Rule('/', endpoint='home'),
-			Rule('/<path:path>', endpoint='show_page'),
-			Rule('/+create', endpoint='create_page'),
-		])
-
-	# WSGI stuff
-
-	def dispatch_request(self, request):
-		adapter = self.url_map.bind_to_environ(request.environ)
-		try:
-			endpoint, values = adapter.match()
-			return getattr(self, endpoint)(request, **values)
-		except NotFound as e:
-			return self.handle_not_found(request)
-		except HTTPException, e:
-			return e
-
-	def wsgi_app(self, environ, start_response):
-		request = Request(environ)
-		response = self.dispatch_request(request)
-		return response(environ, start_response)
-
-	def __call__(self, environ, start_response):
-		return self.wsgi_app(environ, start_response)
-
-	def serve(self, port=8080):
-		from werkzeug.serving import run_simple
-		run_simple('127.0.0.1', port, self, use_debugger=self.debug, use_reloader=self.debug)
 
 	# Authentication stuff
 
@@ -59,9 +29,11 @@ class WebWiki (object):
 
 	# Actual application stuff
 
+	@get('/')
 	def home(self, request):
 		return redirect('/index')
 
+	@bind('/<path:path>')
 	def show_page(self, request, path):
 		if request.method == 'GET':
 			self.get_permission(request, 'read')
@@ -101,6 +73,7 @@ class WebWiki (object):
 	def __repr__(self):
 		return super(WebWiki, self).__repr__()
 
+	@post('/+create')
 	def create_page(self, request):
 		author = self.get_permission(request, 'write')
 		p = self.wiki.create_page(request.form['path'], 'mdown', author)
