@@ -8,12 +8,11 @@ from werkzeug.wrappers import Response
 from werkzeug.utils import redirect
 from werkzeug.exceptions import NotFound
 
-from .web_framework import WebApp, get, post, bind
-
-t = Environment(loader=PackageLoader('giki', 'templates'))
+from .web_framework import WebApp, get, post, bind, template
 
 class WebWiki (WebApp):
 	debug = False
+	template_env = Environment(loader=PackageLoader('giki', 'templates'))
 
 	def __init__(self, wiki):
 		self.wiki = wiki
@@ -27,6 +26,17 @@ class WebWiki (WebApp):
 		@return the appropriate Git author string."""
 		return 'Example Exampleson <example@example.com>'
 
+	# Template stuff
+	def global_ctx(self, request):
+		"""Returns global context that should be provided to all templates.
+
+		Override this (making sure to call super properly!) to
+		add to the global context.
+		"""
+		return {
+			'default_page': self.wiki.default_page,
+		}
+
 	# Actual application stuff
 
 	@get('/')
@@ -34,6 +44,7 @@ class WebWiki (WebApp):
 		return redirect('/index')
 
 	@bind('/<path:path>')
+	@template('page.html')
 	def show_page(self, request, path):
 		if request.method == 'GET':
 			self.get_permission(request, 'read')
@@ -62,7 +73,7 @@ class WebWiki (WebApp):
 				'path_components': path_components,
 				'default_page': self.wiki.default_page,
 			}
-			return Response(t.get_template('page.html').render(**attrs), mimetype='text/html')
+			return attrs, {'mimetype': 'text/html'}
 		elif request.method == 'POST':
 			author = self.get_permission(request, 'write')
 			p = self.wiki.get_page_at_commit(path, request.form['commit_id'])

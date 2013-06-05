@@ -5,8 +5,9 @@ Web apps are wholly contained in a class, meaning that multiple instances of the
 
 from copy import copy
 from inspect import getmembers
+from functools import wraps
 
-from werkzeug.wrappers import Request
+from werkzeug.wrappers import Request, Response
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import HTTPException, NotFound
 
@@ -86,3 +87,55 @@ class post (bind):
 	def __init__(self, *args, **kwargs):
 		super(post, self).__init__(*args, **kwargs)
 		self.r_kwargs['methods'] = ['POST']
+
+#####
+# TEMPLATE STUFF
+
+try:
+	import jinja2
+except:
+	pass
+
+class template (object):
+	"""Decorator for templates.
+
+	Example usage:
+
+		@template('index.html')
+		def index(request):
+			return {'foo': 'bar'}
+	
+	If the return value is a dict, the given Jinja template is rendered
+	using the return value as its context. If the return value is a
+	2-tuple of dicts, the given Jinja template is rendered using the first
+	dict as context, and the second dict is passed to the generated
+	werkzeug.wrappers.Response as keyword arguments.
+	"""
+
+	def __init__(self, path):
+		self.path = path
+	
+	def __call__ (self, func):
+		@wraps(func)
+		def outer(that, request, *args, **kwargs):
+			rv = func(that, request, *args, **kwargs)
+
+			if type(rv) == tuple and type(rv[0]) == dict and type(rv[1]) == dict:
+				context = rv[0]
+				response_kwargs = rv[1]
+			elif type(rv) == dict:
+				context = rv
+				response_kwargs = {}
+			else:
+				return rv
+
+			if hasattr(that, 'global_ctx'):
+				if hasattr(that.global_ctx, '__call__'):
+					global_ctx = that.global_ctx(request)
+				else:
+					global_ctx = that.global_ctx
+				merged_ctx = copy(global_ctx)
+				merged_ctx.update(context)
+
+			return Response(that.template_env.get_template(self.path).render(**merged_ctx), **response_kwargs)
+		return outer
