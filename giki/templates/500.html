@@ -1,19 +1,11 @@
-<!doctype html>
-<html>
-	<head>
-		<title>Internal Error</title>
-		<link rel=stylesheet href='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/css/bootstrap-combined.min.css'>
-		<script type='text/css' url='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/js/bootstrap.min.js'></script>
-	</head>
-	<body>
-		<div class='container'>
-			<h1>500: {{request.path[1:]}}</h1>
-			<p>
-				An error occured. If you're running the latest version of giki, check out the <a href='https://github.com/adambrenecki/giki/issues'>issues list on the giki github page</a> and add an issue if you need to.
-			</p><p>
-				Here's the Python traceback of the error:
-			</p>
-			<pre>{{traceback}}</pre>
-		</div>
-	</body>
-</html>
+{% extends '_base.html' %}
+{% block title %}Internal Error{% endblock %}
+{% block body %}
+	<h1>500: {{request.path[1:]}}</h1>
+	<p>
+		An error occured. If you're running the latest version of giki, check out the <a href='https://github.com/adambrenecki/giki/issues'>issues list on the giki github page</a> and add an issue if you need to.
+	</p><p>
+		Here's the Python traceback of the error:
+	</p>
+	<pre>{{traceback}}</pre>
+{% endblock %}

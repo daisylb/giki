@@ -1,20 +1,12 @@
-<!doctype html>
-<html>
-	<head>
-		<title>Not Found</title>
-		<link rel=stylesheet href='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/css/bootstrap-combined.min.css'>
-		<script type='text/css' url='//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.0/js/bootstrap.min.js'></script>
-	</head>
-	<body>
-		<div class='container'>
-			<h1>404: {{request.path[1:]}}</h1>
-			<p>
-				The page could not be found.
-			</p>
-			<form method=post action='/+create'>
-				<input type=hidden name=path value='{{request.path[1:]}}'>
-				<button type=submit class='btn btn-primary btn-large'>Create a new page here</button>
-			</form>
-		</div>
-	</body>
-</html>
+{% extends '_base.html' %}
+{% block title %}Not Found{% endblock %}
+{% block body %}
+	<h1>404: {{request.path[1:]}}</h1>
+	<p>
+		The page could not be found.
+	</p>
+	<form method=post action='/+create'>
+		<input type=hidden name=path value='{{request.path[1:]}}'>
+		<button type=submit class='btn btn-primary btn-large'>Create a new page here</button>
+	</form>
+{% endblock %}
