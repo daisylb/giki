@@ -91,7 +91,7 @@ class WebWiki (WebApp):
 		return redirect('/' + request.form['path'])
 
 	def handle_not_found(self, request):
-		r = Response(t.get_template('404.html').render(request=request), mimetype='text/html')
+		r = Response(self.template_env.get_template('404.html').render(request=request), mimetype='text/html')
 		r.status_code = 404
 		return r
 

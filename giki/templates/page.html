@@ -14,7 +14,7 @@
 		{% endif %}
 		<style type='text/css'>
 			.CodeMirror {
-				margin-top: 20px;
+				margin-top: 40px;
 				font-size: 13.5px;
 				font-family: 'Source Code Pro', 'Anonymous Pro', Menlo, 'Courier New', Courier, monospace;
 				border-bottom: 1px #ddd solid;
@@ -75,7 +75,7 @@
 					</div>
 					<input type=hidden name='commit_id' value="{{page.commit_id}}">
 					<div class='control-group'>
-						<textarea name=content rows=20 id='editor' class=span12>{{page.content}}</textarea>
+						<textarea name=content rows=20 id='editor' class=span12>{% if page.content and page.content != "\n" %}{{page.content}}{% else %}Enter your content here.{% endif %}</textarea>
 					</div>
 				</form>
 			</div>
