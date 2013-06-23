@@ -179,9 +179,11 @@ class WikiPage (object):
         @return id of the commit the modification was made in. Note that if a
         merge was performed, this may not be the branch head.
         """
+        # Don't write a redundant commit if the content is the same.
         if self._orig_content == self.content:
             return self.commit_id
 
+        # Ensure there's a trailing newline.
         if self.content[-1] != "\n":
             self.content += "\n"
 
@@ -192,15 +194,17 @@ class WikiPage (object):
 
         immediate_parent_tree = self._trees[-1][1]
 
+        # grab the old blob ID (which we'll use later), before replacing it
+        try:
+            _, old_blob_id = immediate_parent_tree[full_filename]
+        except KeyError:
+            new_file = True
         immediate_parent_tree[full_filename] = (0100644, blob.id)
-
         self._repo.object_store.add_object(blob)
         self._repo.object_store.add_object(immediate_parent_tree)
 
-        #loop backwards through parent trees
-        for t in reversed(list(enumerate(self._trees[:-1]))):
-            idx = t[0]
-            tree = t[1][1]
+        # update parent trees
+        for idx, (_, tree) in reversed(list(enumerate(self._trees[:-1]))):
             child_tree = self._trees[idx + 1]
             tree[child_tree[0]] = (040000, child_tree[1].id)
             self._repo.object_store.add_object(tree)
