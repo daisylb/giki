@@ -13,7 +13,6 @@
 		<script src="https://login.persona.org/include.js"></script>
 		<style type='text/css'>
 			.CodeMirror {
-				margin-top: 40px;
 				font-size: 13.5px;
 				font-family: 'Source Code Pro', 'Anonymous Pro', Menlo, 'Courier New', Courier, monospace;
 				border-bottom: 1px #ddd solid;
@@ -26,26 +25,30 @@
 			.breadcrumb {
 				display: inline;
 				background: none;
-			}
-			#top-row {
-				padding: 10px 5px;
-				margin: 5px 0;
-				border: 1px solid #ddd;
-				border-radius: 5px;
+				padding-top: 20px;
 				vertical-align: middle;
 			}
-			#top-row button {
-				position: relative;
-				top: -5px;
+			#edit-button {
+				margin-right: 5px;
+			}
+			body {
+				padding-top: 40px; /* to account for navbar */
 			}
 		</style>
 		{% block head %}{% endblock %}
 	</head>
 	<body>
 		<div class='container'>
+			<div class='navbar navbar-fixed-top'>
+				<div class='navbar-inner'>
+					{% block navbar %}{% endblock %}
+					<div class='navbar-form pull-right'>
+						<button class='btn' id='login'>Log In</button>
+					</div>
+				</div>
+			</div>
 			{% block body %}{% endblock %}
 		</div>
-		<a href='javascript:void(0);' id='login'>log in</a>
 		<script>
 			var editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
 				mode: '{{fmt_cm}}',

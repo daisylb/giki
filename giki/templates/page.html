@@ -5,40 +5,34 @@
 		<script src="http://codemirror.net/mode/{{fmt_cm}}/{{fmt_cm}}.js"></script>
 	{% endif %}
 {% endblock %}
+{% block navbar %}
+	<ul class="breadcrumb">
+		<li><a href="/">{{default_page}}</a></li>
+		{% for cpt in path_components %}
+			<li>
+				<span class="divider">/</span>
+				<a href="/{{cpt.path}}">{{cpt.name}}</a>
+			</li>
+		{% endfor %}
+	</ul>
+	<div class='navbar-form pull-right'>
+		<button class='btn' id='edit-button' onclick='edit();'>Edit</button>
+	</div>
+{% endblock %}
 {% block body %}
 	<div id='wiki-view'>
-		<div id='top-row'>
-			<ul class="breadcrumb">
-				<li><a href="/">{{default_page}}</a></li>
-				{% for cpt in path_components %}
-					<li>
-						<span class="divider">/</span>
-						<a href="/{{cpt.path}}">{{cpt.name}}</a>
-					</li>
-				{% endfor %}
-			</ul>
-			<span style='float: right;'>
-				<button class='btn' onclick='edit();'>Edit</button>
-			</span>
-		</div>
 		{{content}}
 	</div>
 	<div id='wiki-edit'>
 		<form method=post class='form-horizontal'>
-			<div id='edit-toolbar' class='navbar navbar-fixed-top'>
-				<div class="navbar-inner">
-					<div class='navbar-form container'>
-						<div class='pull-right'>
-							<input type=text name=commit_msg class='input-xxlarge' placeholder='Change description'>
-							<button type=submit class='btn btn-primary' onclick="editing=false;">Save</button>
-						</div>
-						<button type=reset class='btn pull-left' onclick="view();">Cancel</button>
-					</div>
-				</div>
-			</div>
 			<input type=hidden name='commit_id' value="{{page.commit_id}}">
 			<div class='control-group'>
 				<textarea name=content rows=20 id='editor' class=span12>{% if page.content and page.content != "\n" %}{{page.content}}{% else %}Enter your content here.{% endif %}</textarea>
+			</div>
+			<div class='control-group'>
+				<input type=text name=commit_msg class='input-xxlarge' placeholder='Change description'>
+				<button type=submit class='btn btn-primary' onclick="editing=false;">Save</button>
+				<button type=reset class='btn pull-left' onclick="view();">Cancel</button>
 			</div>
 		</form>
 	</div>
