@@ -120,3 +120,19 @@ def test_unicode_author():
     p.content = 'More Content\n'
     p.save('いろはにほへとち <unicode@author.com>', 'more stuff')
     # TODO: assert that author is in the history correctly
+
+@with_setup(setups.setup_bare_with_page, setups.teardown_bare)
+def test_merge_into_tree_with_modifications_to_different_files():
+    w = Wiki(setups.BARE_REPO_PATH)
+    w.create_page('test1', 'md', setups.EXAMPLE_AUTHOR)
+    w.create_page('test2', 'md', setups.EXAMPLE_AUTHOR)
+    p1 = w.get_page('test1')
+    p2 = w.get_page('test2')
+    p1.content = 'test1'
+    p1.save(setups.EXAMPLE_AUTHOR)
+    # the branch has now moved since p2 was pulled out of the repo
+    p2.content = 'test2'
+    p2.save(setups.EXAMPLE_AUTHOR) # this SHOULD commit our changes, then merge
+                                   # in p1's changes
+    p1 = w.get_page('test1') # re-pull from the current head
+    assert p1.content == 'test1'
