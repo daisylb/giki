@@ -91,14 +91,17 @@ class WebWiki (WebApp):
         return redirect('/' + request.form['path'])
 
     def handle_not_found(self, request):
-        r = Response(self.template_env.get_template('404.html').render(request=request), mimetype='text/html')
+        template = self.template_env.get_template('404.html')
+        r = Response(template.render(request=request), mimetype='text/html')
         r.status_code = 404
         return r
 
     def handle_internal_error(self, request, exc):
         io = StringIO()
         print_exc(file=io)
-        return Response(t.get_template('500.html').render(request=request, traceback=io.getvalue()))
+        traceback = io.getvalue()
+        template = self.template_env.get_template('500.html') 
+        return Response(template.render(request=request, traceback=traceback))
 
 class SingleUserWiki (WebWiki):
     def __init__(self, wiki, author):

@@ -14,7 +14,7 @@ class Wiki (object):
     def __init__(self, repo_path, ref_name="refs/heads/master"):
         """Sets up the object.
 
-        @param repo_path Path on disk to the Git repository the wiki is stored in.
+        @param repo_path Path on disk to the Git repository the wiki is in.
         @param ref_name Ref name to consider the head of the wiki branch.
         """
 
@@ -24,7 +24,7 @@ class Wiki (object):
     def get_page(self, path):
         """Gets the page at a particular path.
 
-        Subfolders should be specified with the `/` symbol, regardless of platform.
+        Subfolders should be specified with the `/` symbol, not os.path.sep.
 
         @return `WikiPage` object
         @raises PageNotFound if the page does not exist
@@ -39,10 +39,10 @@ class Wiki (object):
         return p
 
     def get_page_at_commit(self, path, id):
-        """Gets the page at a particular path, at the commit with a particular sha.
+        """Gets the page at a given path, at the commit with a given sha.
 
         @return `WikiPage` object
-        @raises PageNotFound if the page does not exist at that particular commit
+        @raises PageNotFound if the page does not exist at that commit
         """
         p = WikiPage(self, path)
         p._load_from_commit(id)
@@ -103,7 +103,8 @@ class WikiPage (object):
         self._orig_content = '!'
         self.content = "\n"
         self.fmt = fmt
-        self.save(author.encode(self.wiki._encoding), 'Created {}'.format(self.path).encode(self.wiki._encoding))
+        self.save(author.encode(self.wiki._encoding),
+                'Created {}'.format(self.path).encode(self.wiki._encoding))
 
     def _load(self):
         id = self._repo.ref(self.wiki._ref)
@@ -118,9 +119,10 @@ class WikiPage (object):
         self._commit = self._repo.commit(commit_id)
         self._walk_trees()
         blob = self._find_blob()
+        blob_ob = self._repo.object_store[blob.sha]
 
-
-        self._orig_content = self.content = self._repo.object_store[blob.sha].as_raw_string().decode(self.wiki._encoding)
+        self.content = blob_ob.as_raw_string().decode(self.wiki._encoding)
+        self._orig_content = self.content
 
     def _walk_trees(self, create=False):
         """Populates `_trees` and `_filename`"""
@@ -151,7 +153,8 @@ class WikiPage (object):
     def _find_blob(self):
         # find a blob that matches our page's name, and discover its format
         try:
-            tc = self._repo.object_store.iter_tree_contents(self._trees[-1][1].id)
+            tc = self._repo.object_store.iter_tree_contents(
+                    self._trees[-1][1].id)
             for i in tc:
                 if i.path.startswith("{}.".format(self._filename)):
                     self.fmt = i.path.split(".")[1]
@@ -166,24 +169,26 @@ class WikiPage (object):
     def save(self, author, change_msg=''):
         """Saves a page to the respository.
 
-        Makes a new commit with the modified contents of `content`, with `commit`
-        as its parent commit. If `commit` is no longer the branch head, it may also
-        add a separate merge commit.
+        Makes a new commit with the modified contents of `content`, with
+        `commit` as its parent commit. If `commit` is no longer the branch head,
+        it may also add a separate merge commit.
 
         @param Author, in Git-style `name <email>` format.
-        @param change_msg Commit message. Automatically generated if omitted/empty.
-        @return id of the commit the modification was made in. Note that if a merge
-            was performed, this may not be the branch head.
+        @param change_msg Commit message. Automatically generated if
+        omitted/empty.
+        @return id of the commit the modification was made in. Note that if a
+        merge was performed, this may not be the branch head.
         """
         if self._orig_content == self.content:
-            return self.commit
+            return self.commit_id
 
         if self.content[-1] != "\n":
             self.content += "\n"
 
         #save updated content to the tree
         blob = Blob.from_string(self.content.encode(self.wiki._encoding))
-        full_filename = '.'.join((self._filename, self.fmt)).encode(self.wiki._encoding)
+        full_filename = '.'.join((self._filename, self.fmt)).encode(
+                self.wiki._encoding)
 
         immediate_parent_tree = self._trees[-1][1]
 

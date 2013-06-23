@@ -96,12 +96,16 @@ def format(page):
     """Converts a giki page object into HTML.
     
     TODO: remove me and replace all calls to me
-    TODO: implement some sort of post-processor interface for the table thing"""
+    TODO: implement some sort of post-processor interface for the table thing
+    """
+
     try:
         formatted_text = formatter.for_extension(page.fmt).format(page.content)
         return formatted_text.replace('<table>', '<table class="table">')
     except KeyError:
-        return "<code><pre>{}</pre></code>".format(page.content.replace('&', '&nbsp;').replace('<', '&lt;').replace('>', '&gt;'))
+        return "<code><pre>{}</pre></code>".format(
+                page.content.replace('&', '&nbsp;').replace('<', '&lt;'
+                ).replace('>', '&gt;'))
 
 def get_names(page):
     try:
