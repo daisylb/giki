@@ -1,6 +1,6 @@
 import argparse
 from .core import Wiki
-from .web import SingleUserWiki
+from .web import SingleUserWiki, MultiUserWiki
 
 def main():
     parser = argparse.ArgumentParser(
@@ -11,10 +11,17 @@ def main():
 			default=8080, help='Port to serve on')
     parser.add_argument('-P, --path', dest='path', metavar='PATH', type=str,
 			default='.', help='Path to the Git bare repo')
+    parser.add_argument('-m, --multiuser', dest='multiuser',
+            action='store_true')
     args = parser.parse_args()
     
     wiki = Wiki(args.path)
-    app = SingleUserWiki(wiki, args.author)
+
+    if args.multiuser:
+        app = MultiUserWiki(wiki)
+    else:
+        app = SingleUserWiki(wiki, args.author)
+
     app.debug = True
     
     print "Starting wiki at http://localhost:{}/. ^C to exit.".format(args.port)

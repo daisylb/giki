@@ -110,3 +110,6 @@ class SingleUserWiki (WebWiki):
 
     def get_permission(self, request, kind):
         return self.author
+
+class MultiUserWiki (WebWiki):
+    pass
