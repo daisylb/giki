@@ -53,6 +53,67 @@ class Wiki (object):
         p._create(fmt, author)
         return p
 
+    def __get_trees(self, root_tree, path, create=False):
+        """Gets a list of trees specified by `path` relatve to `root_tree`.
+
+        Returns a list of tuples in the form (name, tree_obj).
+        """
+        # accept either a string or tree object for the root tree
+        if type(root_tree) in (str, unicode):
+            root_tree = self._repo.object_store[root_tree]
+            
+        trees = [['', root_tree]]
+        
+        if len(path) == 0:
+            return trees
+
+        # loop through trees to find the immediate parent of our page
+        tree = root_tree
+        for i in path:
+            i = i.encode(self._encoding)
+            try:
+                tree_type, tree_id = tree[i]
+            except KeyError:
+                if create:
+                    tree = Tree()
+                    trees.append([i, tree])
+                else:
+                    raise
+            else:
+                if tree_type != 040000:
+                    raise KeyError()
+                tree = self._repo.object_store[tree_id]
+                trees.append([i, tree])
+
+        return trees
+
+    def _get_subtree(self, root_tree, path, create=False):
+        """Returns a tree object for the subtree given by `path` relative to
+        `root_tree`.
+        """
+        trees = self.__get_trees(root_tree, path, create=create)
+        return trees[-1][1]
+
+    def _put_subtree(self, root_tree, path, new_tree):
+        """Replaces the subtree at `path` relative to `root_tree` with
+        `new_tree`, then returns the new root tree object.
+        """
+        trees = self.__get_trees(root_tree, path, create=True)
+
+        # insert our new subtree into the list
+        trees[-1][1] = new_tree
+        self._repo.object_store.add_object(new_tree)
+
+        # update all the parent trees
+        for i, (_, tree) in reversed(list(enumerate(trees[:-1]))):
+            child_name, child_tree = trees[i+1]
+            tree[child_name] = (040000, child_tree.id)
+            self._repo.object_store.add_object(tree)
+
+        # return the root tree
+        return trees[0][1]
+
+
 class WikiPage (object):
     """Represents a page in a Giki wiki.
 
@@ -75,23 +136,23 @@ class WikiPage (object):
     content = ''
     fmt = ''
     path = ''
+    _path_list = None
+    _name = ''
     commit_id = '' # The commit this page came from before modification
     _commit = None
     _orig_content = '' # For comparing to see if it's actually changed
-    _trees = []
-    _filename = '' #without extension
 
     def __init__(self, wiki, path):
         """Don't call this directly."""
         self.wiki = wiki
         self._repo = wiki._repo
         self.path = path
-        self._trees = [] #tuples of (directory_name, tree_obj)
+        self._path_list = path.split('/')
+        self._name = self._path_list[-1]
 
     def _create(self, fmt, author):
         self.commit_id = self._repo.ref(self.wiki._ref)
         self._commit = self._repo.commit(self.commit_id)
-        self._walk_trees(True)
 
         try:
             self._find_blob()
@@ -117,54 +178,31 @@ class WikiPage (object):
     def _load_from_commit(self, commit_id):
         self.commit_id = commit_id
         self._commit = self._repo.commit(commit_id)
-        self._walk_trees()
         blob = self._find_blob()
-        blob_ob = self._repo.object_store[blob.sha]
 
-        self.content = blob_ob.as_raw_string().decode(self.wiki._encoding)
+        self.content = blob.as_raw_string().decode(self.wiki._encoding)
         self._orig_content = self.content
-
-    def _walk_trees(self, create=False):
-        """Populates `_trees` and `_filename`"""
-        self._trees.append(('', self._repo.object_store[self._commit.tree]))
-
-        if '/' in self.path:
-            patharr = self.path.split('/')
-            self._filename = patharr[-1]
-
-            # loop through trees to find the immediate parent of our page
-            tree = self._trees[0][1]
-            for i in patharr[:-1]:
-                i = i.encode(self.wiki._encoding)
-                try:
-                    tree_id = tree[i][1]
-                except KeyError:
-                    if create:
-                        tree = Tree()
-                        self._trees.append((i, tree))
-                    else:
-                        raise PageNotFound()
-                else:
-                    tree = self._repo.object_store[tree_id]
-                    self._trees.append((i, tree))
-        else:
-            self._filename = self.path
 
     def _find_blob(self):
         # find a blob that matches our page's name, and discover its format
         try:
-            tc = self._repo.object_store.iter_tree_contents(
-                    self._trees[-1][1].id)
-            for i in tc:
-                if i.path.startswith("{}.".format(self._filename)):
-                    self.fmt = i.path.split(".")[1]
-                    blob = i
-                    break
-            else:
-                raise PageNotFound()
+            subtree = self.wiki._get_subtree(self._commit.tree,
+                    self._path_list[:-1])
+            
+            for mode, name, sha in subtree.entries():
+                # if it's not a regular or executable file, keep going
+                if mode not in (0100644, 0100755):
+                    continue
+
+                # test the name
+                if name.startswith("{}.".format(self._name)):
+                    self.fmt = name.split(".")[1]
+                    return self._repo.object_store[sha]
         except KeyError:
             raise PageNotFound()
-        return blob
+
+        # if we get to here, we haven't found it
+        raise PageNotFound()
 
     def save(self, author, change_msg=''):
         """Saves a page to the respository.
@@ -187,36 +225,35 @@ class WikiPage (object):
         if self.content[-1] != "\n":
             self.content += "\n"
 
-        #save updated content to the tree
+        # save updated content to the tree
         blob = Blob.from_string(self.content.encode(self.wiki._encoding))
-        full_filename = '.'.join((self._filename, self.fmt)).encode(
+        self._repo.object_store.add_object(blob)
+
+        # grab the tree we're replacing
+        full_filename = '.'.join((self._name, self.fmt)).encode(
                 self.wiki._encoding)
+        new_tree = self.wiki._get_subtree(self._commit.tree,
+                self._path_list[:-1], create=True)
 
-        immediate_parent_tree = self._trees[-1][1]
-
-        # grab the old blob ID (which we'll use later), before replacing it
+        # grab the old blob ID (which we'll use later)
         try:
-            _, old_blob_id = immediate_parent_tree[full_filename]
+            _, old_blob_id = new_tree[full_filename]
         except KeyError:
             new_file = True
-        immediate_parent_tree[full_filename] = (0100644, blob.id)
-        self._repo.object_store.add_object(blob)
-        self._repo.object_store.add_object(immediate_parent_tree)
 
-        # update parent trees
-        for idx, (_, tree) in reversed(list(enumerate(self._trees[:-1]))):
-            child_tree = self._trees[idx + 1]
-            tree[child_tree[0]] = (040000, child_tree[1].id)
-            self._repo.object_store.add_object(tree)
+        # insert the new tree into the tree, and save
+        new_tree[full_filename] = (0100644, blob.id)
+        new_root_tree = self.wiki._put_subtree(self._commit.tree,
+                self._path_list[:-1], new_tree)
 
-        #create a commit
+        # create a commit
         commit = Commit()
-        commit.tree = self._trees[0][1].id
+        commit.tree = new_root_tree.id
         commit.parents = [self.commit_id]
         commit.author = commit.committer = author.encode(self.wiki._encoding)
         commit.commit_time = commit.author_time = int(time())
         commit.commit_timezone = commit.author_timezone = 0
-        commit.encoding = "UTF-8"
+        commit.encoding = self.wiki._encoding
         commit.message = change_msg
         self._repo.object_store.add_object(commit)
 
