@@ -113,6 +113,18 @@ class Wiki (object):
         # return the root tree
         return trees[0][1]
 
+    def _do_commit(self, tree, parents, author, timezone, message):
+        commit = Commit()
+        commit.tree = tree if type(tree) in (str, unicode) else tree.id
+        commit.parents = parents
+        commit.author = commit.committer = author.encode(self._encoding)
+        commit.commit_time = commit.author_time = int(time())
+        commit.commit_timezone = commit.author_timezone = timezone
+        commit.encoding = self._encoding
+        commit.message = message
+        self._repo.object_store.add_object(commit)
+        return commit.id
+
 
 class WikiPage (object):
     """Represents a page in a Giki wiki.
@@ -247,18 +259,62 @@ class WikiPage (object):
                 self._path_list[:-1], new_tree)
 
         # create a commit
-        commit = Commit()
-        commit.tree = new_root_tree.id
-        commit.parents = [self.commit_id]
-        commit.author = commit.committer = author.encode(self.wiki._encoding)
-        commit.commit_time = commit.author_time = int(time())
-        commit.commit_timezone = commit.author_timezone = 0
-        commit.encoding = self.wiki._encoding
-        commit.message = change_msg
-        self._repo.object_store.add_object(commit)
+        commit_id = self.wiki._do_commit(new_root_tree, [self.commit_id],
+                author, 0, change_msg)
 
-        #update refs, to hell with concurrency (for now)
-        self._repo.refs[self.wiki._ref] = commit.id
+        # have any other commits been made since this one's parent?
+        if self._repo.refs[self.wiki._ref] != self.commit_id:
+            current_head = self._repo.refs[self.wiki._ref]
+            # walk back through parents to make sure that the old commit is the
+            # merge base. Easiest to do recursively since commits can have many
+            # parents
+            def step(i):
+                if i == self.commit_id:
+                    return True
+                commit = self._repo.object_store[i]
+                for parent in commit.parents:
+                    if step(parent):
+                        return True
+                return False
+            common_base = step(current_head)
+
+            # just raise if there's no commits in common
+            if not common_base:
+                raise ManualMergeRequired(
+                        "Current head is not a descendant of new commit's "
+                        "direct parent - did someone rebase?")
+            else:
+                # has the actual content changed?
+                current_root_tree = self._repo.object_store[current_head].tree
+                current_subtree = self.wiki._get_subtree(current_root_tree,
+                        self._path_list[:-1])
+                try:
+                    current_blob_id = current_subtree[full_filename][1]
+                except KeyError:
+                    raise ManualMergeRequired("Someone has deleted the page"
+                            " since you started editing.")
+                else:
+                    if current_blob_id != old_blob_id:
+                        print current_blob_id, old_blob_id
+                        raise ManualMergeRequired("Someone has edited the page"
+                                " since you started editing")
+                    else:
+                        current_subtree[full_filename] = (0100644, blob.id)
+                        merge_root_tree = self.wiki._put_subtree(
+                                current_root_tree, self._path_list[:-1],
+                                current_subtree)
+                        edit_commit_id = self.wiki._do_commit(merge_root_tree,
+                                [commit_id, current_head], author, 0,
+                                'Merge edits')
+                        self._repo.refs[self.wiki._ref] = edit_commit_id
+                        return
+        else:
+            # make our new commit the head of our branch
+            self._repo.refs[self.wiki._ref] = commit_id
+            return
+        
+        # if we've fallen through to here, there's a bug!
+        raise Exception("This should never happen")
 
 class PageNotFound (Exception):
     pass

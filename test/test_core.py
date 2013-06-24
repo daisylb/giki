@@ -128,11 +128,15 @@ def test_merge_into_tree_with_modifications_to_different_files():
     w.create_page('test2', 'md', setups.EXAMPLE_AUTHOR)
     p1 = w.get_page('test1')
     p2 = w.get_page('test2')
-    p1.content = 'test1'
+    p1.content = 'test1\n'
     p1.save(setups.EXAMPLE_AUTHOR)
     # the branch has now moved since p2 was pulled out of the repo
-    p2.content = 'test2'
+    p2.content = 'test2\n'
     p2.save(setups.EXAMPLE_AUTHOR) # this SHOULD commit our changes, then merge
                                    # in p1's changes
     p1 = w.get_page('test1') # re-pull from the current head
-    assert p1.content == 'test1'
+    print p1.content
+    assert p1.content == 'test1\n'
+
+# TODO: test that WikiPage.save() fails appropriately when the new commit's
+# parent isn't an ancestor of the current commit (ie someone's rebased)
